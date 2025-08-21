@@ -60,9 +60,11 @@ __created__ = "August 2025"
 # Load environment variables
 load_dotenv()
 
-# Override environment variables for main app (to avoid conflicts with project_relationships.env)
-os.environ['PORT'] = '8080'
-os.environ['AUTODESK_CALLBACK_URL'] = 'http://localhost:8080/api/auth/callback'
+# Set default values for environment variables (can be overridden by .env file)
+if not os.getenv('PORT'):
+    os.environ['PORT'] = '8080'
+if not os.getenv('AUTODESK_CALLBACK_URL'):
+    os.environ['AUTODESK_CALLBACK_URL'] = 'http://localhost:8080/api/auth/callback'
 
 # Verify required environment variables
 required_env_vars = ['AUTODESK_CLIENT_ID', 'AUTODESK_CLIENT_SECRET']
@@ -95,7 +97,24 @@ autodesk = oauth.register(
 )
 
 # Configure pdfkit with wkhtmltopdf path
-config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+# Try to find wkhtmltopdf in common installation paths
+def find_wkhtmltopdf():
+    possible_paths = [
+        'C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe',
+        'C:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe',
+        '/usr/local/bin/wkhtmltopdf',
+        '/usr/bin/wkhtmltopdf',
+        'wkhtmltopdf'  # Try system PATH
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path) or path == 'wkhtmltopdf':
+            return path
+    
+    # If not found, return the default Windows path
+    return 'C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe'
+
+config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf())
 
 def get_autodesk_headers(token):
     return {
@@ -1515,8 +1534,7 @@ def export_form_pdf(form_id):
         acc_project_id = project_id[2:] if project_id.startswith('b.') else project_id
         headers = get_autodesk_headers(session['access_token'])
         
-        # Get project details to display the actual project name
-        project_name = "Trent - Sandbox"  # Hardcoded for testing
+        # Project name removed - will not display in PDF
         
         # Get form data (reuse logic from view_form)
         forms_url = f'https://developer.api.autodesk.com/construction/forms/v1/projects/{acc_project_id}/forms'
@@ -1732,7 +1750,6 @@ def export_form_pdf(form_id):
             <div class="form-header">
                 {logo_html}
                 <h1>{form_info['name']}</h1>
-                <p>Project: {project_name}</p>
                 {f'<p style="text-align: right; font-size: 10px; color: #666;">Exported: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>' if include_timestamp else ''}
             </div>
             {''.join(f'''
@@ -1753,7 +1770,7 @@ def export_form_pdf(form_id):
         # Convert HTML to PDF using pdfkit
         try:
             import pdfkit
-            config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+            config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf())
             pdf_bytes = pdfkit.from_string(html_content, False, configuration=config)
             
             # Return PDF with proper filename
@@ -2124,7 +2141,6 @@ def export_forms_zip():
                     <div class="form-header">
                         {logo_html}
                         <h1>{form_info['name']}</h1>
-                        <p>Project: {project_name}</p>
                         {f'<p style="text-align: right; font-size: 10px; color: #666;">Exported: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>' if include_timestamp else ''}
                     </div>
                     {''.join(f'''
@@ -2145,7 +2161,7 @@ def export_forms_zip():
                 # Convert HTML to PDF and add to ZIP
                 try:
                     import pdfkit
-                    config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+                    config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf())
                     pdf_bytes = pdfkit.from_string(html_content, False, configuration=config)
                     
                     # Add PDF to ZIP
@@ -4485,4 +4501,6 @@ if __name__ == '__main__':
     print(f"Using port: {port}")
     
     # Run the Flask app
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    # Use debug mode only if explicitly set in environment
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode) 

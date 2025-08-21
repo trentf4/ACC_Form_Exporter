@@ -11,3 +11,7 @@ AUTODESK_CALLBACK_URL=http://localhost:8080/api/auth/callback
 
 # Server Configuration
 PORT=8080
+
+# Debug Configuration (optional)
+# Set to 'true' to enable debug mode (not recommended for production)
+FLASK_DEBUG=False

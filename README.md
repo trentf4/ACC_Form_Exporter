@@ -221,16 +221,6 @@ PORT=8080
    - Select **"Custom Integration"**
    - Enter your app's Client ID from Autodesk Platform Services
 
-3. **Configure Permissions**
-   - Enable **"Forms"** access
-   - Enable **"Assets"** access (for relationship data)
-   - Enable **"Locations"** access (for asset location data)
-   - Set appropriate permission levels (Read/Write as needed)
-
-4. **Assign to Projects**
-   - Select which projects should have access to this integration
-   - You can assign to specific projects or all projects in the hub
-
 #### Step 4: Test the Integration
 
 1. **Verify Authentication**
@@ -279,9 +269,20 @@ When deploying to production, update your app's callback URL:
 
 - Python 3.7+
 - Flask
-- wkhtmltopdf
+- wkhtmltopdf (automatically detected in common installation paths)
 - Autodesk Platform Services account
 - ACC hub with appropriate permissions
+
+## Environment Variables
+
+The application uses the following environment variables (configured in `.env` file):
+
+- `FLASK_SECRET_KEY`: Secret key for Flask sessions (required)
+- `AUTODESK_CLIENT_ID`: Your Autodesk Platform Services Client ID (required)
+- `AUTODESK_CLIENT_SECRET`: Your Autodesk Platform Services Client Secret (required)
+- `AUTODESK_CALLBACK_URL`: OAuth callback URL (defaults to http://localhost:8080/api/auth/callback)
+- `PORT`: Server port (defaults to 8080)
+- `FLASK_DEBUG`: Enable debug mode (defaults to False, set to 'true' for development)
 
 ## Troubleshooting
 
