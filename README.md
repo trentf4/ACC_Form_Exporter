@@ -73,16 +73,16 @@ A Flask web application for exporting Autodesk Construction Cloud (ACC) forms as
    - Type `cmd` and press Enter
    - A black window will open - this is your "terminal"
 
-2. **Navigate to a Folder**
-   - Type: `cd C:\Users\%USERNAME%\Desktop`
+2. **Navigate to a Folder of Your Choice**
+   - Type: `cd C:\Users\%USERNAME%\Documents` (or any folder you prefer)
    - Press Enter
-   - This takes you to your Desktop folder
+   - This takes you to your chosen folder
 
 3. **Download the Code**
    - Type: `git clone https://github.com/trentf4/ACC_Form_Exporter.git`
    - Press Enter
    - Wait for the download to complete
-   - You should see a new folder called "ACC_Form_Exporter" on your Desktop
+   - You should see a new folder called "ACC_Form_Exporter" in your chosen location
 
 ### Step 2: Open the Project in Cursor
 
@@ -92,7 +92,7 @@ A Flask web application for exporting Autodesk Construction Cloud (ACC) forms as
 
 2. **Open the Project**
    - In Cursor, click "File" → "Open Folder"
-   - Navigate to your Desktop
+   - Navigate to the folder where you downloaded the code
    - Click on the "ACC_Form_Exporter" folder
    - Click "Select Folder"
 
@@ -113,7 +113,8 @@ A Flask web application for exporting Autodesk Construction Cloud (ACC) forms as
 2. **Install Python Packages**
    - In Cursor, press `Ctrl + `` (the key above Tab)
    - This opens the terminal inside Cursor
-   - Type: `cd C:\Users\%USERNAME%\Desktop\ACC_Form_Exporter`
+   - Type: `cd` followed by the path to your ACC_Form_Exporter folder
+   - For example: `cd C:\Users\%USERNAME%\Documents\ACC_Form_Exporter`
    - Press Enter
    - Type: `pip install -r requirements.txt`
    - Press Enter
@@ -145,7 +146,8 @@ A Flask web application for exporting Autodesk Construction Cloud (ACC) forms as
 
 1. **Start the App**
    - In the Cursor terminal (Ctrl + `)
-   - Make sure you're in the right folder: `cd C:\Users\%USERNAME%\Desktop\ACC_Form_Exporter`
+   - Make sure you're in the right folder: `cd` followed by the path to your ACC_Form_Exporter folder
+   - For example: `cd C:\Users\%USERNAME%\Documents\ACC_Form_Exporter`
    - Type: `python app.py`
    - Press Enter
 
