@@ -99,16 +99,6 @@ PORT=8080
    - Select **"Custom Integration"**
    - Enter your app's Client ID from Autodesk Platform Services
 
-3. **Configure Permissions**
-   - Enable **"Forms"** access
-   - Enable **"Assets"** access (for relationship data)
-   - Enable **"Locations"** access (for asset location data)
-   - Set appropriate permission levels (Read/Write as needed)
-
-4. **Assign to Projects**
-   - Select which projects should have access to this integration
-   - You can assign to specific projects or all projects in the hub
-
 #### Step 4: Test the Integration
 
 1. **Verify Authentication**
