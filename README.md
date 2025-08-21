@@ -56,12 +56,95 @@ AUTODESK_CALLBACK_URL=http://localhost:8080/api/auth/callback
 PORT=8080
 ```
 
-### Autodesk API Setup
+### Autodesk Platform Services Setup
 
-1. Go to https://forge.autodesk.com/
-2. Create a new app
-3. Add the callback URL: `http://localhost:8080/api/auth/callback`
-4. Copy the Client ID and Client Secret to your `.env` file
+#### Step 1: Create a New App
+
+1. **Go to Autodesk Platform Services Console**
+   - Visit https://forge.autodesk.com/
+   - Sign in with your Autodesk account
+
+2. **Create a New App**
+   - Click **"Create App"** or **"New App"**
+   - Choose **"Custom Integration"** as the app type
+   - Give your app a name (e.g., "ACC Form Exporter")
+   - Add a description (e.g., "Export ACC forms as branded PDFs")
+
+#### Step 2: Configure App Settings
+
+1. **Set Callback URL**
+   - In your app settings, find the **"Callback URL"** field
+   - For local development: `http://localhost:8080/api/auth/callback`
+   - For production: `https://your-domain.com/api/auth/callback`
+
+2. **Configure Scopes**
+   - Add the following scopes to your app:
+     - `data:read` - Read project and form data
+     - `data:write` - Write form data (if needed)
+     - `data:create` - Create new data (if needed)
+     - `account:read` - Read account information
+
+3. **Get Your Credentials**
+   - Copy your **Client ID** and **Client Secret**
+   - Add them to your `.env` file
+
+#### Step 3: Configure ACC Permissions
+
+1. **Access ACC Admin Panel**
+   - Go to your ACC hub
+   - Navigate to **Admin** → **Integrations**
+
+2. **Add Custom Integration**
+   - Click **"Add Integration"**
+   - Select **"Custom Integration"**
+   - Enter your app's Client ID from Autodesk Platform Services
+
+3. **Configure Permissions**
+   - Enable **"Forms"** access
+   - Enable **"Assets"** access (for relationship data)
+   - Enable **"Locations"** access (for asset location data)
+   - Set appropriate permission levels (Read/Write as needed)
+
+4. **Assign to Projects**
+   - Select which projects should have access to this integration
+   - You can assign to specific projects or all projects in the hub
+
+#### Step 4: Test the Integration
+
+1. **Verify Authentication**
+   - Start your application: `python app.py`
+   - Visit http://localhost:8080
+   - Try logging in with your Autodesk account
+   - You should be redirected to ACC for authorization
+
+2. **Check Permissions**
+   - After login, you should see your ACC hubs
+   - Select a hub and verify you can see projects
+   - Test form export functionality
+
+### Production Deployment
+
+#### Update Callback URL for Production
+
+When deploying to production, update your app's callback URL:
+
+1. **In Autodesk Platform Services Console**
+   - Go to your app settings
+   - Change callback URL to: `https://your-domain.com/api/auth/callback`
+
+2. **In your `.env` file**
+   - Update `AUTODESK_CALLBACK_URL` to match
+
+3. **Update ACC Integration**
+   - In ACC Admin → Integrations
+   - Update the integration settings if needed
+
+#### Security Considerations
+
+- **HTTPS Required**: Production deployments must use HTTPS
+- **Secret Management**: Store credentials securely (use environment variables)
+- **Access Control**: Limit integration access to necessary projects only
+- **Regular Review**: Periodically review and update permissions
 
 ## Usage
 
@@ -76,6 +159,38 @@ PORT=8080
 - Flask
 - wkhtmltopdf
 - Autodesk Platform Services account
+- ACC hub with appropriate permissions
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Not authenticated" errors**
+   - Check your Client ID and Secret in `.env`
+   - Verify callback URL matches exactly
+   - Ensure app is properly configured in Autodesk Platform Services
+
+2. **"No hubs found"**
+   - Verify your ACC account has access to hubs
+   - Check integration permissions in ACC Admin
+   - Ensure the integration is assigned to projects
+
+3. **"Forms not loading"**
+   - Check ACC integration permissions for Forms access
+   - Verify project has forms available
+   - Check network connectivity to ACC APIs
+
+4. **PDF generation fails**
+   - Ensure wkhtmltopdf is installed and in PATH
+   - Check file permissions for temporary files
+   - Verify logo files are valid image formats
+
+### Getting Help
+
+- Check the application logs for detailed error messages
+- Verify all environment variables are set correctly
+- Test with a simple form export first
+- Contact your ACC administrator for permission issues
 
 ## License
 
