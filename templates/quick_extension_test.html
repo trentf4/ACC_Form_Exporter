@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Extension Form Test - Trent Field</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .test-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin: 20px auto;
+            max-width: 1000px;
+        }
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+        }
+        .form-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .asset-badge {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 0.8em;
+        }
+        .relationship-id {
+            background: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+        .loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="test-container">
+            <div class="test-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1><i class="fas fa-clock"></i> Quick Extension Form Test</h1>
+                        <p class="mb-0">Find and test relationships for "Extension of Time Claim" forms</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="/form_downloader" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left"></i> Back to Forms
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <!-- Project Selection -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="projectId" class="form-label">Project ID:</label>
+                        <input type="text" id="projectId" class="form-control" placeholder="Enter project ID" value="bb2b51a5-6911-4eb6-ad1c-d7af778738de">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">&nbsp;</label>
+                        <button id="searchExtensionForms" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> Search Extension Forms
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="results" style="display: none;">
+                    <h3>Extension Forms Found</h3>
+                    <div id="extensionFormsList"></div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="loading text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Searching for extension forms...</p>
+                </div>
+
+                <!-- No Results -->
+                <div id="noResults" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No extension of time claim forms found.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchButton = document.getElementById('searchExtensionForms');
+            const projectIdInput = document.getElementById('projectId');
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            const noResultsDiv = document.getElementById('noResults');
+            const formsListDiv = document.getElementById('extensionFormsList');
+
+            searchButton.addEventListener('click', searchExtensionForms);
+
+            function searchExtensionForms() {
+                const projectId = projectIdInput.value.trim();
+                if (!projectId) {
+                    alert('Please enter a project ID');
+                    return;
+                }
+
+                // Show loading
+                loadingDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                noResultsDiv.style.display = 'none';
+
+                fetch(`/api/forms/${projectId}/quick-extension-search`)
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingDiv.style.display = 'none';
+                        
+                        if (data.error) {
+                            alert(`Error: ${data.error}`);
+                            return;
+                        }
+
+                        if (data.extension_forms_found === 0) {
+                            noResultsDiv.style.display = 'block';
+                            return;
+                        }
+
+                        displayExtensionForms(data.extension_forms, projectId);
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        console.error('Error:', error);
+                        alert(`Error: ${error.message}`);
+                    });
+            }
+
+            function displayExtensionForms(forms, projectId) {
+                let html = '';
+                
+                forms.forEach(form => {
+                    html += `
+                        <div class="form-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5>${form.name}</h5>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Form #: ${form.form_num || 'N/A'}</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Date: ${form.form_date || 'N/A'}</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Status: <span class="badge bg-${form.status === 'active' ? 'success' : 'secondary'}">${form.status || 'unknown'}</span></small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Created: ${form.created_at ? new Date(form.created_at).toLocaleDateString() : 'N/A'}</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <strong>Assets:</strong> 
+                                        <span id="assets-${form.id}">
+                                            ${form.relationships_checked ? 
+                                                (form.assets.length > 0 ? 
+                                                    form.assets.map(asset => 
+                                                        `<span class="asset-badge">${asset.name}</span>`
+                                                    ).join('') : 
+                                                    '<span class="text-muted">None found</span>'
+                                                ) : 
+                                                '<span class="text-muted">Click "Generate Relationships" to check</span>'
+                                            }
+                                        </span>
+                                    </div>
+                                    <div class="mt-1">
+                                        <strong>Relationship IDs:</strong> 
+                                        <span id="relationship-ids-${form.id}">
+                                            ${form.relationships_checked && form.assets.length > 0 ? 
+                                                form.assets
+                                                    .filter(asset => asset.relationship_id)
+                                                    .map(asset => 
+                                                        `<span class="relationship-id">${asset.relationship_id}</span>`
+                                                    ).join(' ') : 
+                                                '<span class="text-muted">None</span>'
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-success btn-sm generate-relationships" 
+                                            data-form-id="${form.id}" 
+                                            data-project-id="${projectId}"
+                                            ${form.relationships_checked ? 'disabled' : ''}>
+                                        <i class="fas fa-link"></i> 
+                                        ${form.relationships_checked ? 'Relationships Generated' : 'Generate Relationships'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                formsListDiv.innerHTML = html;
+                resultsDiv.style.display = 'block';
+
+                // Add event listeners for generate relationships buttons
+                document.querySelectorAll('.generate-relationships').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const formId = this.dataset.formId;
+                        const projectId = this.dataset.projectId;
+                        generateRelationships(formId, projectId, this);
+                    });
+                });
+            }
+
+            function generateRelationships(formId, projectId, button) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+                fetch(`/api/forms/${formId}/generate-relationships`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ project_id: projectId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(`Error: ${data.error}`);
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-link"></i> Generate Relationships';
+                        return;
+                    }
+
+                    // Update the assets display
+                    const assetsSpan = document.getElementById(`assets-${formId}`);
+                    const relationshipIdsSpan = document.getElementById(`relationship-ids-${formId}`);
+
+                    if (data.assets.length > 0) {
+                        assetsSpan.innerHTML = data.assets.map(asset => 
+                            `<span class="asset-badge">${asset.name}</span>`
+                        ).join('');
+                        
+                        const relationshipIds = data.assets
+                            .filter(asset => asset.relationship_id)
+                            .map(asset => `<span class="relationship-id">${asset.relationship_id}</span>`);
+                        
+                        relationshipIdsSpan.innerHTML = relationshipIds.length > 0 ? 
+                            relationshipIds.join(' ') : '<span class="text-muted">None</span>';
+                    } else {
+                        assetsSpan.innerHTML = '<span class="text-muted">None found</span>';
+                        relationshipIdsSpan.innerHTML = '<span class="text-muted">None</span>';
+                    }
+
+                    button.innerHTML = '<i class="fas fa-check"></i> Relationships Generated';
+                    
+                    console.log(`Generated relationships for ${data.form_name}:`, data.assets);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(`Error: ${error.message}`);
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-link"></i> Generate Relationships';
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

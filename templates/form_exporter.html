@@ -1,0 +1,1883 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+
+
+
+        .main-content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+
+        .project-selector {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1;
+        }
+
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Hide specific columns */
+        .hide-form-id,
+        .hide-relationship-id,
+        .hide-asset-id,
+        .hide-location-id,
+        .hide-description {
+            display: none !important;
+        }
+
+        .table {
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            background: white;
+        }
+
+        .table thead th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: 600;
+            color: #495057;
+            padding: 1rem;
+        }
+
+        .table tbody td {
+            padding: 0.75rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(0, 120, 212, 0.05);
+        }
+
+        /* Progress stages styling */
+        .progress-stages {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 auto;
+            max-width: 600px;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-width: 80px;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .stage i {
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stage.active {
+            color: var(--primary-color);
+        }
+
+        .stage.completed {
+            color: var(--success-color);
+        }
+
+        .stage.pending {
+            color: #6c757d;
+        }
+
+        .table code {
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .asset-name {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .form-name {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .location-name {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+
+        .no-data {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading .progress {
+            background-color: #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .loading .progress-bar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+            transition: width 0.3s ease !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        #loadingProgress {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: 100% !important;
+            min-width: 2px !important;
+        }
+
+        #loadingState {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 9999 !important;
+        }
+
+        .loading i {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: var(--danger-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin: 1rem 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .no-forms {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+        }
+
+        .no-forms i {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        
+        #projectDropdown {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-top: none;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: var(--hover-shadow);
+            z-index: 1000;
+            background: white;
+        }
+        
+        #projectDropdown .dropdown-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            font-weight: 500;
+        }
+        
+        #projectDropdown .dropdown-item:hover,
+        #projectDropdown .dropdown-item.active {
+            background-color: rgba(0, 120, 212, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .form-control, .form-select {
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 120, 212, 0.25);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        #locationFilter {
+            min-height: 120px;
+        }
+        
+        #locationFilter option {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 500;
+        }
+        
+        #locationFilter option:checked {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn {
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #0f6b0f 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #b02a2e 100%);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Additional improvements */
+        .container {
+            max-width: 1400px;
+        }
+
+        .badge {
+            border-radius: 20px;
+            padding: 0.5rem 0.75rem;
+            font-weight: 500;
+        }
+
+        .progress {
+            border-radius: var(--border-radius);
+            background-color: #f8f9fa;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: var(--border-radius);
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-number {
+                font-size: 2rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+            }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold" style="color: var(--primary-color);">
+                <i class="bi bi-file-earmark-text me-3"></i>Form Exporter
+            </h1>
+            <p class="lead text-muted">Advanced form management with automatic PDF export and intelligent filtering</p>
+            
+            {% if hub_name %}
+            <div class="mt-3">
+                <div class="alert alert-info d-inline-block" style="background: linear-gradient(135deg, rgba(0, 120, 212, 0.1) 0%, rgba(0, 120, 212, 0.05) 100%); border: 1px solid rgba(0, 120, 212, 0.2);">
+                    <i class="bi bi-building me-2"></i>
+                    <strong>Hub:</strong> {{ hub_name }}
+                    {% if hub_region %}
+                    <span class="badge bg-primary ms-2">
+                        <i class="bi bi-globe me-1"></i>{{ hub_region }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    <div class="container">
+        <div class="project-selector">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <label for="projectSearch" class="form-label">Step 1: Search & Select Project:</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" id="projectSearch" placeholder="Type to search projects..." autocomplete="off">
+                        <div id="projectDropdown" class="dropdown-menu w-100" style="display: none; max-height: 300px; overflow-y: auto;">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="text-muted small">Select a project to enable filters</div>
+                </div>
+            </div>
+
+            <div id="filterSection" style="display: none;">
+                <h5 class="mb-3">Step 2: Configure Filters</h5>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="formNameFilter" class="form-label">Form Name:</label>
+                        <input type="text" class="form-control" id="formNameFilter" placeholder="Search form names..." disabled>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="barcodeFilter" class="form-label">Barcode Number:</label>
+                        <input type="text" class="form-control" id="barcodeFilter" placeholder="Enter barcode..." disabled>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="locationFilter" class="form-label">Asset Location:</label>
+                        <select class="form-select" id="locationFilter" multiple disabled>
+                            <option value="">Loading locations...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Form Date Range:</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="date" class="form-control" id="dateFromFilter" disabled>
+                            </div>
+                            <div class="col-6">
+                                <input type="date" class="form-control" id="dateToFilter" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="sortFilter" class="form-label">Sort By:</label>
+                        <select class="form-select" id="sortFilter" disabled>
+                            <option value="form_name">Form Name (A-Z)</option>
+                            <option value="form_name_desc">Form Name (Z-A)</option>
+                            <option value="created_date">Form Date (Newest)</option>
+                            <option value="created_date_old">Form Date (Oldest)</option>
+                            <option value="asset_name">Asset Name (A-Z)</option>
+                            <option value="location_name">Location Name (A-Z)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="limitFilter" class="form-label">Show:</label>
+                        <select class="form-select" id="limitFilter" disabled>
+                            <option value="25">25 Forms</option>
+                            <option value="50" selected>50 Forms</option>
+                            <option value="100">100 Forms</option>
+                            <option value="200">200 Forms</option>
+                            <option value="all">All Forms</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-outline-secondary w-100" onclick="clearFilters()" id="clearFiltersBtn" disabled>
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </button>
+                    </div>
+                                        <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" onclick="searchForms()" id="searchFormsBtn" disabled>
+                            <i class="bi bi-search"></i> Search Forms
+                        </button>
+
+                    </div>
+                </div>
+                
+                <!-- Loading State positioned above Search Forms button -->
+                <div id="loadingState" class="loading" style="display: none; position: relative; z-index: 1000; background: white; border: 2px solid #0078d4; border-radius: 8px; padding: 20px; margin: 20px 0; min-height: 300px;">
+                    <!-- Simplified loading state without nested cards -->
+                    <div style="text-align: center; padding: 20px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h4 class="mt-3 mb-2" id="loadingTitle">Processing Project Data</h4>
+                        <p class="text-muted" id="loadingMessage">Initializing form processing...</p>
+                        
+                        <!-- Progress bar with stages -->
+                        <div class="progress mt-4 mb-3" style="height: 20px; background-color: #e9ecef; border: 2px solid #0078d4; border-radius: 10px; overflow: hidden;">
+                            <div id="loadingProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; min-width: 2px; background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%); font-weight: bold; color: white; line-height: 16px; font-size: 12px; text-align: center; display: flex; align-items: center; justify-content: center;">0%</div>
+                        </div>
+                        
+                        <!-- Progress stages -->
+                        <div class="progress-stages mb-3">
+                            <div class="stage" id="stage1">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>Checking cache</span>
+                            </div>
+                            <div class="stage" id="stage2">
+                                <i class="bi bi-arrow-clockwise text-muted"></i>
+                                <span>Fetching forms</span>
+                            </div>
+                            <div class="stage" id="stage3">
+                                <i class="bi bi-arrow-clockwise text-muted"></i>
+                                <span>Loading locations</span>
+                            </div>
+                            <div class="stage" id="stage4">
+                                <i class="bi bi-arrow-clockwise text-muted"></i>
+                                <span>Finding relationships</span>
+                            </div>
+                            <div class="stage" id="stage5">
+                                <i class="bi bi-arrow-clockwise text-muted"></i>
+                                <span>Processing forms</span>
+                            </div>
+                        </div>
+                        
+                        <small class="text-muted d-block">This may take a moment as we're processing all relationships in the project.</small>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="statsSection" class="stats-card" style="display: none;">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="stats-number" id="totalRelationships">0</div>
+                    <div class="stats-label">Total Relationships</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-number" id="extensionForms">0</div>
+                    <div class="stats-label">Total Forms</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-number" id="totalAssets">0</div>
+                    <div class="stats-label">Related Assets</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h3 class="mb-1">Forms with Relationships</h3>
+                            <p class="text-muted mb-0">Export forms with their associated assets using intelligent naming</p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <span class="badge bg-primary fs-6" id="formCount">0</span>
+                                <span class="text-muted ms-2">forms found</span>
+                            </div>
+                            <button class="btn btn-success btn-sm" onclick="exportSelectedFormsPDF()" id="exportPDFBtn" disabled>
+                                <i class="bi bi-file-pdf me-2"></i>Export Selected
+                            </button>
+                        </div>
+                    </div>
+            
+            <div class="table-responsive" id="formsTableContainer" style="display: none;">
+                <table class="table table-bordered table-hover">
+                                         <thead class="table-dark">
+                         <tr>
+                             <th><input type="checkbox" id="selectAllForms" onchange="toggleSelectAll()"></th>
+                             <th>Form Name</th>
+                             <th style="display: none;">Form ID</th>
+                             <th>Form Date</th>
+                             <th style="display: none;">Relationship ID</th>
+                             <th>Asset Name</th>
+                             <th style="display: none;">Asset ID</th>
+                             <th>Client Asset ID</th>
+                             <th style="display: none;">Location ID</th>
+                             <th>Location Name</th>
+                             <th>Barcode</th>
+                             <th style="display: none;">Description</th>
+                             <th>Actions</th>
+                         </tr>
+                     </thead>
+                    <tbody id="formsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+
+        <div id="errorState" class="error" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle me-3"></i>
+                        <span id="errorMessage"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="noFormsState" class="no-forms" style="display: none;">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-search"></i>
+                    <h4 class="mt-3 mb-2">No Forms Found</h4>
+                    <p class="text-muted">No forms with relationships were found in the selected project.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let projects = [];
+        let selectedProjectId = null;
+        let allFormsData = []; // Store all forms data for filtering
+        let filteredFormsData = []; // Store filtered forms data
+        let availableLocations = []; // Store available locations for the dropdown
+        let exportSettings = {}; // Store export settings
+
+        // Load projects when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Content Loaded - Starting initialization...');
+            loadExportSettings();
+            loadProjects().then(() => {
+                console.log('✅ Projects loaded successfully');
+            }).catch((error) => {
+                console.error('❌ Error loading projects:', error);
+            });
+            setupProjectSearch();
+            setupFormFilters();
+        });
+
+        function loadExportSettings() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('exportSettings') || '{}');
+                exportSettings = settings;
+                console.log('📋 Loaded export settings:', settings);
+            } catch (error) {
+                console.error('❌ Error loading export settings:', error);
+                exportSettings = {};
+            }
+        }
+
+        function setupFormFilters() {
+            // Add event listeners to form filter inputs
+            const formFilters = ['formNameFilter', 'barcodeFilter', 'dateFromFilter', 'dateToFilter'];
+            formFilters.forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        // Enable search button when any filter changes
+                        document.getElementById('searchFormsBtn').disabled = false;
+                    });
+                }
+            });
+
+            // Add event listeners to select filters
+            const selectFilters = ['locationFilter', 'sortFilter', 'limitFilter'];
+            selectFilters.forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) {
+                    element.addEventListener('change', function() {
+                        // Enable search button when any filter changes
+                        document.getElementById('searchFormsBtn').disabled = false;
+                    });
+                }
+            });
+        }
+
+        function setupProjectSearch() {
+            const searchInput = document.getElementById('projectSearch');
+            const dropdown = document.getElementById('projectDropdown');
+            const filterSection = document.getElementById('filterSection');
+            let searchTimeout;
+
+            // Handle input changes with debouncing
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                // Clear previous timeout
+                clearTimeout(searchTimeout);
+                
+                // Set new timeout for debouncing (300ms delay)
+                searchTimeout = setTimeout(() => {
+                    // Check if projects are loaded, if not, try to load them
+                    if (!projects || projects.length === 0) {
+                        console.log('🔍 No projects loaded, attempting to load...');
+                        loadProjects().then(() => {
+                            filterAndShowProjects(searchTerm);
+                        });
+                    } else {
+                        filterAndShowProjects(searchTerm);
+                    }
+                }, 300);
+            });
+
+            // Handle focus events
+            searchInput.addEventListener('focus', function() {
+                console.log('🔍 Search input focused');
+                if (this.value.length > 0) {
+                    console.log('🔍 Filtering on focus with term:', this.value);
+                    filterAndShowProjects(this.value.toLowerCase());
+                } else {
+                    // Show all projects when focused with empty input
+                    console.log('🔍 Showing all projects on focus');
+                    if (projects && projects.length > 0) {
+                        filterAndShowProjects('');
+                    } else {
+                        console.log('🔍 No projects available, attempting to load...');
+                        loadProjects().then(() => {
+                            if (projects && projects.length > 0) {
+                                filterAndShowProjects('');
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Handle click outside to close dropdown
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            // Handle keyboard navigation
+            searchInput.addEventListener('keydown', function(e) {
+                const visibleOptions = dropdown.querySelectorAll('.dropdown-item');
+                const currentIndex = Array.from(visibleOptions).findIndex(item => item.classList.contains('active'));
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextIndex = currentIndex < visibleOptions.length - 1 ? currentIndex + 1 : 0;
+                    updateActiveOption(visibleOptions, nextIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : visibleOptions.length - 1;
+                    updateActiveOption(visibleOptions, prevIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const activeOption = dropdown.querySelector('.dropdown-item.active');
+                    if (activeOption) {
+                        selectProject(activeOption.dataset.projectId, activeOption.textContent);
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function updateActiveOption(options, index) {
+            options.forEach((option, i) => {
+                option.classList.toggle('active', i === index);
+            });
+        }
+
+        function filterAndShowProjects(searchTerm) {
+            const dropdown = document.getElementById('projectDropdown');
+            
+            console.log('🔍 Filtering projects for:', searchTerm);
+            console.log('🔍 Available projects:', projects.length);
+            
+            // Handle empty search term - show all projects
+            if (!searchTerm || searchTerm.length === 0) {
+                console.log('🔍 Showing all projects (no search term)');
+                if (projects && projects.length > 0) {
+                    const fragment = document.createDocumentFragment();
+                    
+                    // Show first 20 projects
+                    const projectsToShow = projects.slice(0, 20);
+                    projectsToShow.forEach(project => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item';
+                        item.href = '#';
+                        item.dataset.projectId = project.id;
+                        item.textContent = project.name;
+                        
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            selectProject(this.dataset.projectId, this.textContent);
+                        });
+                        
+                        fragment.appendChild(item);
+                    });
+                    
+                    dropdown.innerHTML = '';
+                    dropdown.appendChild(fragment);
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+                return;
+            }
+            
+            // Check if projects are loaded
+            if (!projects || projects.length === 0) {
+                console.log('⚠️ No projects available for search');
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Apply text search filter with early termination
+            const filteredProjects = [];
+            const searchLower = searchTerm.toLowerCase();
+            
+            // Limit results to first 20 matches for better performance
+            for (let i = 0; i < projects.length && filteredProjects.length < 20; i++) {
+                const project = projects[i];
+                if (project.name.toLowerCase().includes(searchLower)) {
+                    filteredProjects.push(project);
+                }
+            }
+
+            console.log(`🔍 Found ${filteredProjects.length} matching projects`);
+
+            if (filteredProjects.length > 0) {
+                // Use document fragment for better performance
+                const fragment = document.createDocumentFragment();
+                
+                filteredProjects.forEach(project => {
+                    const item = document.createElement('a');
+                    item.className = 'dropdown-item';
+                    item.href = '#';
+                    item.dataset.projectId = project.id;
+                    item.textContent = project.name;
+                    
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        selectProject(this.dataset.projectId, this.textContent);
+                    });
+                    
+                    fragment.appendChild(item);
+                });
+                
+                dropdown.innerHTML = '';
+                dropdown.appendChild(fragment);
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        function selectProject(projectId, projectName) {
+            selectedProjectId = projectId;
+            document.getElementById('projectSearch').value = projectName;
+            document.getElementById('projectDropdown').style.display = 'none';
+            
+            // Show filter section and load project data
+            document.getElementById('filterSection').style.display = 'block';
+            loadProjectData();
+        }
+
+        async function loadProjectData() {
+            console.log('loadProjectData called for project:', selectedProjectId);
+            // Show loading state
+            showLoading();
+            
+            try {
+                // Start with initial progress
+                updateProgress(5, 'Starting form processing...');
+                updateProgressStage(1, 'active');
+                
+                // Start progress polling
+                let progressInterval = setInterval(async () => {
+                    try {
+                        const progressResponse = await fetch(`/api/progress/${selectedProjectId}`);
+                        if (progressResponse.ok) {
+                            const progressData = await progressResponse.json();
+                            console.log('Progress update:', progressData);
+                            if (progressData.percentage > 0) {
+                                updateProgress(progressData.percentage, progressData.message);
+                                
+                                // Update stages based on progress percentage
+                                if (progressData.percentage >= 20) {
+                                    updateProgressStage(1, 'completed'); // Checking cache
+                                } else {
+                                    updateProgressStage(1, 'active');
+                                }
+                                
+                                if (progressData.percentage >= 40) {
+                                    updateProgressStage(2, 'completed'); // Fetching forms
+                                } else if (progressData.percentage >= 20) {
+                                    updateProgressStage(2, 'active');
+                                }
+                                
+                                if (progressData.percentage >= 60) {
+                                    updateProgressStage(3, 'completed'); // Loading locations
+                                } else if (progressData.percentage >= 40) {
+                                    updateProgressStage(3, 'active');
+                                }
+                                
+                                if (progressData.percentage >= 80) {
+                                    updateProgressStage(4, 'completed'); // Finding relationships
+                                } else if (progressData.percentage >= 60) {
+                                    updateProgressStage(4, 'active');
+                                }
+                                
+                                if (progressData.percentage >= 100) {
+                                    updateProgressStage(5, 'completed'); // Processing forms
+                                    clearInterval(progressInterval);
+                                    progressInterval = null;
+                                } else if (progressData.percentage >= 80) {
+                                    updateProgressStage(5, 'active');
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error polling progress:', error);
+                    }
+                }, 500); // Poll every half second
+                
+                // Make the actual API call
+                console.log('Making API call to fetch form data...');
+                const response = await fetch(`/api/form_exporter/${selectedProjectId}`);
+                
+                // Stop progress polling immediately
+                clearInterval(progressInterval);
+                progressInterval = null;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allFormsData = data.forms || [];
+                    
+                    // Show completion with actual data
+                    const totalForms = allFormsData.length;
+                    if (totalForms > 0) {
+                        // Show 100% completion
+                        updateProgress(100, 'Processing Complete');
+                        
+                        // Mark all stages as completed with green checkmarks
+                        updateProgressStage(1, 'completed'); // Checking cache
+                        updateProgressStage(2, 'completed'); // Fetching forms
+                        updateProgressStage(3, 'completed'); // Loading locations
+                        updateProgressStage(4, 'completed'); // Finding relationships
+                        updateProgressStage(5, 'completed'); // Processing forms
+                        
+                        // Change progress bar to green
+                        const progressBar = document.getElementById('loadingProgress');
+                        if (progressBar) {
+                            progressBar.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                        }
+                        
+                        // Hide the blue spinning wheel
+                        const spinningWheel = document.querySelector('.spinner-border');
+                        if (spinningWheel) {
+                            spinningWheel.style.display = 'none';
+                        }
+                        
+                        // Update loading message to show completion with filter instructions
+                        const loadingMessage = document.getElementById('loadingMessage');
+                        if (loadingMessage) {
+                            loadingMessage.innerHTML = '<div style="color: #28a745; font-weight: bold; margin-bottom: 10px;">Processing Complete!</div><div style="color: #6c757d; font-size: 0.9rem;">Use the filters above to find the forms you need, then click Search Forms when ready</div>';
+                        }
+                        
+                        // Delay to show completion message with filter instructions
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                    
+                    populateFilterOptions(allFormsData);
+                    enableFilters();
+                    
+                    // Hide loading and show results immediately
+                    hideLoading();
+                    showResults();
+                    
+                    // Update stats
+                    document.getElementById('totalRelationships').textContent = allFormsData.reduce((sum, form) => sum + (form.related_assets ? form.related_assets.length : 0), 0);
+                    document.getElementById('extensionForms').textContent = allFormsData.length;
+                    document.getElementById('totalAssets').textContent = allFormsData.reduce((sum, form) => sum + (form.related_assets ? form.related_assets.length : 0), 0);
+                    
+                } else {
+                    const data = await response.json();
+                    hideLoading();
+                    showError(data.error || 'Failed to load project data');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoading();
+                showError(error.message || 'Network error occurred');
+            }
+        }
+
+        function populateFilterOptions(formsData) {
+            const locationFilter = document.getElementById('locationFilter');
+            const locations = new Set();
+            const formNames = new Set();
+            const barcodes = new Set();
+            
+            // Extract unique values from forms data
+            formsData.forEach(form => {
+                if (form.form_name) {
+                    formNames.add(form.form_name);
+                }
+                
+                if (form.related_assets) {
+                    form.related_assets.forEach(asset => {
+                        if (asset.locationName) {
+                            locations.add(asset.locationName);
+                        }
+                        if (asset.barcode) {
+                            barcodes.add(asset.barcode);
+                        }
+                    });
+                }
+            });
+            
+            // Populate location filter
+            locationFilter.innerHTML = '';
+            Array.from(locations).sort().forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                locationFilter.appendChild(option);
+            });
+            
+            availableLocations = Array.from(locations);
+            
+            // Update placeholders with available options
+            const formNameFilter = document.getElementById('formNameFilter');
+            const barcodeFilter = document.getElementById('barcodeFilter');
+            
+            if (formNames.size > 0) {
+                formNameFilter.placeholder = `Search ${formNames.size} form names...`;
+            }
+            
+            if (barcodes.size > 0) {
+                barcodeFilter.placeholder = `Search ${barcodes.size} barcodes...`;
+            }
+        }
+
+        function enableFilters() {
+            // Enable all filter inputs
+            const filterInputs = ['formNameFilter', 'barcodeFilter', 'dateFromFilter', 'dateToFilter'];
+            filterInputs.forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            
+            const filterSelects = ['locationFilter', 'sortFilter', 'limitFilter'];
+            filterSelects.forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            
+            // Enable buttons
+            document.getElementById('clearFiltersBtn').disabled = false;
+            document.getElementById('searchFormsBtn').disabled = false;
+        }
+
+        async function searchForms() {
+            if (!selectedProjectId) {
+                alert('Please select a project first.');
+                return;
+            }
+
+            try {
+                // Apply filters to the existing data
+                applyFormFilters();
+                
+                // Display the filtered results
+                displayFilteredForms();
+                
+                // Show results section
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('statsSection').style.display = 'block';
+                
+                // Update stats
+                document.getElementById('totalRelationships').textContent = filteredFormsData.reduce((sum, form) => sum + (form.related_assets ? form.related_assets.length : 0), 0);
+                document.getElementById('extensionForms').textContent = filteredFormsData.length;
+                document.getElementById('totalAssets').textContent = filteredFormsData.reduce((sum, form) => sum + (form.related_assets ? form.related_assets.length : 0), 0);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error applying filters');
+            }
+        }
+
+        function applyFormFilters() {
+            const formNameFilter = document.getElementById('formNameFilter').value.toLowerCase();
+            const barcodeFilter = document.getElementById('barcodeFilter').value.toLowerCase();
+            const selectedLocations = Array.from(document.getElementById('locationFilter').selectedOptions).map(option => option.value);
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const limitFilter = document.getElementById('limitFilter').value;
+
+            // Apply filters
+            filteredFormsData = allFormsData.filter(form => {
+                // Form name filter
+                const matchesFormName = !formNameFilter || 
+                    (form.form_name && form.form_name.toLowerCase().includes(formNameFilter));
+
+                // Barcode filter
+                const matchesBarcode = !barcodeFilter || 
+                    (form.related_assets && form.related_assets.some(asset => 
+                        asset.barcode && asset.barcode.toLowerCase().includes(barcodeFilter)
+                    ));
+
+                // Location filter
+                const matchesLocation = selectedLocations.length === 0 || 
+                    (form.related_assets && form.related_assets.some(asset => 
+                        asset.locationName && selectedLocations.includes(asset.locationName)
+                    ));
+
+                // Date range filter
+                let matchesDate = true;
+                if (dateFromFilter || dateToFilter) {
+                    const formDate = new Date(form.form_date);
+                    if (dateFromFilter) {
+                        const fromDate = new Date(dateFromFilter);
+                        matchesDate = matchesDate && formDate >= fromDate;
+                    }
+                    if (dateToFilter) {
+                        const toDate = new Date(dateToFilter);
+                        toDate.setHours(23, 59, 59); // End of day
+                        matchesDate = matchesDate && formDate <= toDate;
+                    }
+                }
+
+                return matchesFormName && matchesBarcode && matchesLocation && matchesDate;
+            });
+
+            // Apply sorting
+            filteredFormsData.sort((a, b) => {
+                switch(sortFilter) {
+                    case 'form_name_desc':
+                        return (b.form_name || '').localeCompare(a.form_name || '');
+                    case 'created_date':
+                        return new Date(b.form_date || 0) - new Date(a.form_date || 0);
+                    case 'created_date_old':
+                        return new Date(a.form_date || 0) - new Date(b.form_date || 0);
+                    case 'asset_name':
+                        const aAssetName = a.related_assets && a.related_assets[0] ? a.related_assets[0].name : '';
+                        const bAssetName = b.related_assets && b.related_assets[0] ? b.related_assets[0].name : '';
+                        return aAssetName.localeCompare(bAssetName);
+                    case 'location_name':
+                        const aLocationName = a.related_assets && a.related_assets[0] ? a.related_assets[0].locationName : '';
+                        const bLocationName = b.related_assets && b.related_assets[0] ? b.related_assets[0].locationName : '';
+                        return aLocationName.localeCompare(bLocationName);
+                    default: // 'form_name' (A-Z)
+                        return (a.form_name || '').localeCompare(b.form_name || '');
+                }
+            });
+
+            // Apply limit
+            if (limitFilter !== 'all') {
+                filteredFormsData = filteredFormsData.slice(0, parseInt(limitFilter));
+            }
+
+            // Update display
+            displayFilteredForms();
+        }
+
+        function displayFilteredForms() {
+            const formsTableBody = document.getElementById('formsTableBody');
+            const formCount = document.getElementById('formCount');
+            const formsTableContainer = document.getElementById('formsTableContainer');
+            
+            formCount.textContent = filteredFormsData.length;
+            
+            // Show the table container
+            formsTableContainer.style.display = 'block';
+            
+            if (filteredFormsData.length === 0) {
+                formsTableBody.innerHTML = '<tr><td colspan="13" class="text-center text-muted">No forms match the current filters</td></tr>';
+                return;
+            }
+
+            formsTableBody.innerHTML = '';
+            
+            filteredFormsData.forEach(form => {
+                if (form.related_assets && form.related_assets.length > 0) {
+                    // Create a row for each asset
+                    form.related_assets.forEach(asset => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><input type="checkbox" class="form-checkbox" data-form-id="${form.form_id}" data-form-name="${form.form_name || 'Unknown Form'}"></td>
+                            <td><span class="form-name">${form.form_name || 'Unknown Form'}</span></td>
+                            <td style="display: none;"><code>${form.form_id || 'N/A'}</code></td>
+                            <td>${formatDate(form.form_date)}</td>
+                            <td style="display: none;"><code>${asset.relationship_id || form.relationship_id || 'N/A'}</code></td>
+                            <td><span class="asset-name">${asset.name || 'Unknown Asset'}</span></td>
+                            <td style="display: none;"><code>${asset.id || 'N/A'}</code></td>
+                            <td>${asset.clientAssetId || '<span class="no-data">N/A</span>'}</td>
+                            <td style="display: none;"><code>${asset.locationId || 'N/A'}</code></td>
+                            <td>${asset.locationName || '<span class="no-data">N/A</span>'}</td>
+                            <td>${asset.barcode || '<span class="no-data">N/A</span>'}</td>
+                            <td style="display: none;">${asset.description || '<span class="no-data">N/A</span>'}</td>
+                            <td>
+                                                            <button class="btn btn-sm btn-outline-primary" onclick="exportFormPDF('${form.form_id}', '${form.form_name || 'Unknown Form'}')" title="Export as PDF">
+                                <i class="bi bi-file-pdf"></i>
+                            </button>
+                            </td>
+                        `;
+                        formsTableBody.appendChild(row);
+                    });
+                } else {
+                    // Create a row for forms with no assets
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><input type="checkbox" class="form-checkbox" data-form-id="${form.form_id}" data-form-name="${form.form_name || 'Unknown Form'}"></td>
+                        <td><span class="form-name">${form.form_name || 'Unknown Form'}</span></td>
+                        <td style="display: none;"><code>${form.form_id || 'N/A'}</code></td>
+                        <td>${formatDate(form.form_date)}</td>
+                        <td style="display: none;"><code>${form.relationship_id || 'N/A'}</code></td>
+                        <td><span class="text-muted">No assets</span></td>
+                        <td style="display: none;"><code>N/A</code></td>
+                        <td><span class="no-data">N/A</span></td>
+                        <td style="display: none;"><code>N/A</code></td>
+                        <td><span class="no-data">N/A</span></td>
+                        <td><span class="no-data">N/A</span></td>
+                        <td style="display: none;"><span class="no-data">N/A</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportFormPDF('${form.form_id}', '${form.form_name || 'Unknown Form'}')" title="Export as PDF">
+                                <i class="bi bi-file-pdf"></i>
+                            </button>
+                        </td>
+                    `;
+                    formsTableBody.appendChild(row);
+                }
+            });
+            
+            // Update export button state
+            updateExportButtonState();
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        function showLoading() {
+            console.log('showLoading called');
+            
+            // Hide all other sections first
+            const sections = ['resultsSection', 'statsSection', 'errorState', 'noFormsState'];
+            sections.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // Show loading state
+            const loadingState = document.getElementById('loadingState');
+            if (loadingState) {
+                loadingState.style.display = 'block';
+                console.log('Loading state element found and displayed');
+            } else {
+                console.error('Loading state element not found!');
+            }
+            
+            // Show the blue spinning wheel
+            const spinningWheel = document.querySelector('.spinner-border');
+            if (spinningWheel) {
+                spinningWheel.style.display = 'block';
+            }
+            
+            // Reset and initialize progress
+            resetProgress();
+            updateProgress(0, 'Initializing form processing...');
+            console.log('Loading state should now be visible');
+        }
+
+        function updateProgress(percentage, message) {
+            console.log('updateProgress:', percentage + '%', message);
+            const progressBar = document.getElementById('loadingProgress');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            // Check if loading elements are still available
+            if (!progressBar || !loadingMessage) {
+                console.log('Loading elements no longer available, skipping progress update');
+                return;
+            }
+            
+            if (progressBar) {
+                // Set the width to the actual percentage
+                progressBar.style.width = percentage + '%';
+                progressBar.setAttribute('aria-valuenow', percentage);
+                
+                // Add percentage text to the progress bar
+                progressBar.textContent = percentage + '%';
+                
+                // Reset to default blue color if not at 100%
+                if (percentage < 100) {
+                    progressBar.style.background = 'linear-gradient(135deg, #0078d4 0%, #106ebe 100%)';
+                }
+                
+                console.log('Progress bar width set to:', percentage + '%');
+            }
+            
+            if (loadingMessage && message) {
+                // Update text content for all percentages except 100% (which uses innerHTML)
+                if (percentage < 100) {
+                    loadingMessage.textContent = message;
+                }
+                console.log('Loading message updated to:', message);
+            }
+        }
+
+        function updateProgressStage(stageNumber, status) {
+            const stage = document.getElementById(`stage${stageNumber}`);
+            if (!stage) return;
+            
+            const icon = stage.querySelector('i');
+            
+            // Remove all classes
+            stage.className = 'stage';
+            icon.className = '';
+            
+            switch (status) {
+                case 'completed':
+                    stage.classList.add('completed');
+                    icon.className = 'bi bi-check-circle-fill text-success';
+                    break;
+                case 'active':
+                    stage.classList.add('active');
+                    icon.className = 'bi bi-arrow-clockwise text-primary';
+                    break;
+                case 'pending':
+                    stage.classList.add('pending');
+                    icon.className = 'bi bi-arrow-clockwise text-muted';
+                    break;
+            }
+        }
+
+        function resetProgressStages() {
+            for (let i = 1; i <= 5; i++) {
+                updateProgressStage(i, 'pending');
+            }
+        }
+
+        function resetProgress() {
+            const progressBar = document.getElementById('loadingProgress');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', 0);
+                progressBar.textContent = '';
+                progressBar.style.background = 'linear-gradient(135deg, #0078d4 0%, #106ebe 100%)';
+            }
+            
+            if (loadingMessage) {
+                loadingMessage.textContent = '';
+            }
+            
+            // Show the blue spinning wheel
+            const spinningWheel = document.querySelector('.spinner-border');
+            if (spinningWheel) {
+                spinningWheel.style.display = 'block';
+            }
+            
+            resetProgressStages();
+        }
+
+
+
+        function hideLoading() {
+            const loadingState = document.getElementById('loadingState');
+            if (loadingState) {
+                loadingState.style.display = 'none';
+                console.log('✅ Loading state hidden successfully');
+            } else {
+                console.error('❌ Loading state element not found!');
+            }
+            
+            // Also ensure the spinning wheel is hidden
+            const spinningWheel = document.querySelector('.spinner-border');
+            if (spinningWheel) {
+                spinningWheel.style.display = 'none';
+                console.log('✅ Spinning wheel hidden');
+            }
+            
+            // Force hide any remaining loading elements
+            const allLoadingElements = document.querySelectorAll('.loading-spinner, .spinner-border, #loadingState');
+            allLoadingElements.forEach(element => {
+                element.style.display = 'none';
+            });
+            console.log('✅ All loading elements hidden');
+        }
+
+        function showResults() {
+            // Hide loading state
+            const loadingState = document.getElementById('loadingState');
+            if (loadingState) {
+                loadingState.style.display = 'none';
+                console.log('✅ Loading state hidden in showResults');
+            }
+            
+            // Show results and stats sections
+            const resultsSection = document.getElementById('resultsSection');
+            const statsSection = document.getElementById('statsSection');
+            if (resultsSection) {
+                resultsSection.style.display = 'block';
+                console.log('✅ Results section shown');
+            }
+            if (statsSection) {
+                statsSection.style.display = 'block';
+                console.log('✅ Stats section shown');
+            }
+            
+            // Hide error and no forms states
+            const errorState = document.getElementById('errorState');
+            const noFormsState = document.getElementById('noFormsState');
+            if (errorState) errorState.style.display = 'none';
+            if (noFormsState) noFormsState.style.display = 'none';
+            
+            console.log('✅ Results section displayed successfully');
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('statsSection').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('noFormsState').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function showNoForms() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('statsSection').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('noFormsState').style.display = 'block';
+        }
+
+        function clearFilters() {
+            document.getElementById('formNameFilter').value = '';
+            document.getElementById('barcodeFilter').value = '';
+            document.getElementById('locationFilter').selectedIndex = -1;
+            document.getElementById('dateFromFilter').value = '';
+            document.getElementById('dateToFilter').value = '';
+            document.getElementById('sortFilter').value = 'form_name';
+            document.getElementById('limitFilter').value = '50';
+            
+            // Always enable clear button when filters are available
+            document.getElementById('clearFiltersBtn').disabled = false;
+            
+            // Disable search button until filters are changed
+            document.getElementById('searchFormsBtn').disabled = true;
+            
+            // Re-apply filters to show all data
+            if (allFormsData && allFormsData.length > 0) {
+                applyFormFilters();
+                displayFilteredForms();
+            }
+        }
+
+        async function loadProjects() {
+            const searchInput = document.getElementById('projectSearch');
+            
+            try {
+                // Show loading state in search input
+                searchInput.placeholder = 'Loading projects...';
+                searchInput.disabled = true;
+                
+                console.log('🔍 Loading projects...');
+                console.log('🔍 Making request to /search_projects?query=');
+                
+                const response = await fetch('/search_projects?query=');
+                console.log('🔍 Response status:', response.status);
+                console.log('🔍 Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('🔍 Error response text:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔍 Projects response:', data);
+                
+                if (data.projects) {
+                    projects = data.projects;
+                    console.log(`✅ Loaded ${projects.length} projects`);
+                } else {
+                    projects = [];
+                    console.log('⚠️ No projects found in response');
+                }
+                
+                // Restore search input
+                searchInput.placeholder = 'Search for a project...';
+                searchInput.disabled = false;
+                
+            } catch (error) {
+                console.error('❌ Error loading projects:', error);
+                projects = [];
+                
+                // Restore search input with error state
+                searchInput.placeholder = 'Error loading projects. Please refresh.';
+                searchInput.disabled = false;
+            }
+        }
+
+        // PDF Export Functions
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllForms');
+            const formCheckboxes = document.querySelectorAll('.form-checkbox');
+            
+            formCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            
+            updateExportButtonState();
+        }
+
+        function updateExportButtonState() {
+            const formCheckboxes = document.querySelectorAll('.form-checkbox:checked');
+            const exportBtn = document.getElementById('exportPDFBtn');
+            
+            if (formCheckboxes.length > 0) {
+                exportBtn.disabled = false;
+                exportBtn.textContent = `Export ${formCheckboxes.length} Form${formCheckboxes.length > 1 ? 's' : ''} as PDF`;
+            } else {
+                exportBtn.disabled = true;
+                exportBtn.textContent = 'Export Selected as PDF';
+            }
+        }
+
+        // Add event listeners to checkboxes
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('form-checkbox')) {
+                updateExportButtonState();
+                
+                // Update select all checkbox
+                const formCheckboxes = document.querySelectorAll('.form-checkbox');
+                const checkedCheckboxes = document.querySelectorAll('.form-checkbox:checked');
+                const selectAllCheckbox = document.getElementById('selectAllForms');
+                
+                if (checkedCheckboxes.length === 0) {
+                    selectAllCheckbox.indeterminate = false;
+                    selectAllCheckbox.checked = false;
+                } else if (checkedCheckboxes.length === formCheckboxes.length) {
+                    selectAllCheckbox.indeterminate = false;
+                    selectAllCheckbox.checked = true;
+                } else {
+                    selectAllCheckbox.indeterminate = true;
+                }
+            }
+        });
+
+        async function exportFormPDF(formId, formName) {
+            if (!selectedProjectId) {
+                alert('No project selected');
+                return;
+            }
+
+            try {
+                // Find the form data to get asset information
+                const formData = allFormsData.find(form => form.form_id === formId);
+                if (!formData) {
+                    alert('Form data not found');
+                    return;
+                }
+
+
+
+                // Generate automatic filename using the format: Form Template Name_Asset Location_Asset Barcode_Asset Name_Form Date
+                let autoFilename = '';
+                
+                if (formData.related_assets && formData.related_assets.length > 0) {
+                    const asset = formData.related_assets[0]; // Use first asset
+                    
+                    // Get form date (format: YYYY-MM-DD)
+                    const formDate = formData.form_date ? 
+                        new Date(formData.form_date).toISOString().split('T')[0] : 
+                        new Date().toISOString().split('T')[0];
+                    
+                    // Build filename components
+                    const formTemplateName = formData.form_name || 'Unknown Form';
+                    const assetLocation = asset.locationName || 'Unknown Location';
+                    const assetBarcode = asset.barcode || 'No Barcode';
+                    const assetName = asset.name || 'Unknown Asset';
+                    
+                    // Combine with underscores
+                    autoFilename = `${formTemplateName}_${assetLocation}_${assetBarcode}_${assetName}_${formDate}`;
+                } else {
+                    // Fallback if no assets
+                    const formDate = formData.form_date ? 
+                        new Date(formData.form_date).toISOString().split('T')[0] : 
+                        new Date().toISOString().split('T')[0];
+                    autoFilename = `${formData.form_name || 'Unknown Form'}_No Asset_No Barcode_No Asset_${formDate}`;
+                }
+
+                // Clean filename for file system
+                const cleanFilename = autoFilename.replace(/[<>:"/\\|?*]/g, '_').trim() + '.pdf';
+
+
+                // Create modal for confirmation
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'filenameModal';
+                modal.setAttribute('tabindex', '-1');
+                modal.setAttribute('aria-labelledby', 'filenameModalLabel');
+                modal.setAttribute('aria-hidden', 'true');
+
+                modal.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="filenameModalLabel">Confirm PDF Export</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Generated filename:</strong></p>
+                                <div class="alert alert-info">
+                                    <code>${cleanFilename}</code>
+                                </div>
+                                <p><strong>Filename format:</strong> Form Template Name_Asset Location_Asset Barcode_Asset Name_Form Date</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="exportBtn">Export PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add modal to page
+                document.body.appendChild(modal);
+
+                // Initialize Bootstrap modal
+                const bootstrapModal = new bootstrap.Modal(modal);
+                bootstrapModal.show();
+
+                // Handle export button
+                modal.querySelector('#exportBtn').addEventListener('click', async function() {
+                    // Show loading state
+                    const button = this;
+                    const originalContent = button.innerHTML;
+                    button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Exporting...';
+                    button.disabled = true;
+
+                    try {
+                        // Create FormData for file upload
+                        const formData = new FormData();
+                        formData.append('project_id', selectedProjectId);
+                        formData.append('filename', cleanFilename);
+                        
+                        // Add export settings
+                        if (exportSettings.logoData) {
+                            formData.append('logo_data', exportSettings.logoData);
+                        }
+                        if (exportSettings.logoPosition) {
+                            formData.append('logo_position', exportSettings.logoPosition);
+                        }
+                        if (exportSettings.logoSize) {
+                            formData.append('logo_size', exportSettings.logoSize);
+                        }
+                        if (exportSettings.pdfOrientation) {
+                            formData.append('pdf_orientation', exportSettings.pdfOrientation);
+                        }
+                        if (exportSettings.pdfMargin) {
+                            formData.append('pdf_margin', exportSettings.pdfMargin);
+                        }
+                        if (exportSettings.includePageNumbers !== undefined) {
+                            formData.append('include_page_numbers', exportSettings.includePageNumbers);
+                        }
+                        if (exportSettings.includeTimestamp !== undefined) {
+                            formData.append('include_timestamp', exportSettings.includeTimestamp);
+                        }
+
+                        // Use POST request for file upload
+                        const response = await fetch(`/api/forms/${formId}/export-pdf`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        // Get the PDF blob and download it
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = cleanFilename;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+
+                        // Close modal
+                        bootstrapModal.hide();
+                        document.body.removeChild(modal);
+
+                    } catch (error) {
+                        console.error('Export error:', error);
+                        alert('Export failed: ' + error.message);
+                    } finally {
+                        // Restore button state
+                        button.innerHTML = originalContent;
+                        button.disabled = false;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+
+        async function exportSelectedFormsPDF() {
+            if (!selectedProjectId) {
+                alert('No project selected');
+                return;
+            }
+
+            const selectedCheckboxes = document.querySelectorAll('.form-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('Please select at least one form to export');
+                return;
+            }
+
+            try {
+                // Get selected form data
+                const selectedForms = [];
+                selectedCheckboxes.forEach(checkbox => {
+                    const formId = checkbox.dataset.formId;
+                    const formData = allFormsData.find(form => form.form_id === formId);
+                    if (formData) {
+                        selectedForms.push(formData);
+                    }
+                });
+
+                // Generate automatic filenames for each form
+                const autoFilenames = selectedForms.map(form => {
+                    let autoFilename = '';
+                    
+                    if (form.related_assets && form.related_assets.length > 0) {
+                        const asset = form.related_assets[0]; // Use first asset
+                        
+                        // Get form date (format: YYYY-MM-DD)
+                        const formDate = form.form_date ? 
+                            new Date(form.form_date).toISOString().split('T')[0] : 
+                            new Date().toISOString().split('T')[0];
+                        
+                        // Build filename components
+                        const formTemplateName = form.form_name || 'Unknown Form';
+                        const assetLocation = asset.locationName || 'Unknown Location';
+                        const assetBarcode = asset.barcode || 'No Barcode';
+                        const assetName = asset.name || 'Unknown Asset';
+                        
+                        // Combine with underscores
+                        autoFilename = `${formTemplateName}_${assetLocation}_${assetBarcode}_${assetName}_${formDate}`;
+                    } else {
+                        // Fallback if no assets
+                        const formDate = form.form_date ? 
+                            new Date(form.form_date).toISOString().split('T')[0] : 
+                            new Date().toISOString().split('T')[0];
+                        autoFilename = `${form.form_name || 'Unknown Form'}_No Asset_No Barcode_No Asset_${formDate}`;
+                    }
+
+                    // Clean filename for file system
+                    return autoFilename.replace(/[<>:"/\\|?*]/g, '_').trim() + '.pdf';
+                });
+
+                // Create modal content showing generated filenames
+                const modalContent = selectedForms.map((form, index) => {
+                    const autoFilename = autoFilenames[index];
+                    return `
+                        <div class="mb-3">
+                            <label class="form-label"><strong>${index + 1}. ${form.form_name}:</strong></label>
+                            <div class="alert alert-info">
+                                <code>${autoFilename}</code>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Create modal for ZIP export confirmation
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'zipFilenameModal';
+                modal.setAttribute('tabindex', '-1');
+                modal.setAttribute('aria-labelledby', 'zipFilenameModalLabel');
+                modal.setAttribute('aria-hidden', 'true');
+
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="zipFilenameModalLabel">Confirm ZIP Export</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Generated filenames (${selectedForms.length} forms):</strong></p>
+                                <p><strong>Filename format:</strong> Form Template Name_Asset Location_Asset Barcode_Asset Name_Form Date</p>
+                                ${modalContent}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="exportZipBtn">Export ZIP</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add modal to page
+                document.body.appendChild(modal);
+
+                // Initialize Bootstrap modal
+                const bootstrapModal = new bootstrap.Modal(modal);
+                bootstrapModal.show();
+
+                // Handle ZIP export button
+                modal.querySelector('#exportZipBtn').addEventListener('click', async function() {
+                    // Show loading state
+                    const exportBtn = this;
+                    const originalContent = exportBtn.innerHTML;
+                    exportBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Generating ZIP...';
+                    exportBtn.disabled = true;
+
+                    try {
+                        // Create FormData for file upload
+                        const formData = new FormData();
+                        formData.append('project_id', selectedProjectId);
+                        formData.append('form_ids', selectedForms.map(form => form.form_id).join(','));
+                        formData.append('filenames', autoFilenames.join(','));
+                        
+                        // Add export settings
+                        if (exportSettings.logoData) {
+                            formData.append('logo_data', exportSettings.logoData);
+                        }
+                        if (exportSettings.logoPosition) {
+                            formData.append('logo_position', exportSettings.logoPosition);
+                        }
+                        if (exportSettings.logoSize) {
+                            formData.append('logo_size', exportSettings.logoSize);
+                        }
+                        if (exportSettings.pdfOrientation) {
+                            formData.append('pdf_orientation', exportSettings.pdfOrientation);
+                        }
+                        if (exportSettings.pdfMargin) {
+                            formData.append('pdf_margin', exportSettings.pdfMargin);
+                        }
+                        if (exportSettings.includePageNumbers !== undefined) {
+                            formData.append('include_page_numbers', exportSettings.includePageNumbers);
+                        }
+                        if (exportSettings.includeTimestamp !== undefined) {
+                            formData.append('include_timestamp', exportSettings.includeTimestamp);
+                        }
+
+                        // Use POST request for file upload
+                        const response = await fetch('/api/forms/export-zip', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        // Get the ZIP blob and download it
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `Forms_Export_${Date.now()}.zip`;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+
+                        // Close modal
+                        bootstrapModal.hide();
+                        document.body.removeChild(modal);
+
+                    } catch (error) {
+                        console.error('Export error:', error);
+                        alert('Export failed: ' + error.message);
+                    } finally {
+                        // Restore button state
+                        exportBtn.innerHTML = originalContent;
+                        exportBtn.disabled = false;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+    </script>
+{% endblock %} 

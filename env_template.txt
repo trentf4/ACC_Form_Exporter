@@ -1,0 +1,13 @@
+# ACC Form Tool Environment Variables
+# Copy this file to .env and fill in your actual values
+
+# Flask Configuration
+FLASK_SECRET_KEY=your-secret-key-here
+
+# Autodesk API Configuration
+AUTODESK_CLIENT_ID=AUnwQ07oTwTswhjqQzwhtAz8ptGnbBcfw8kNIV5dnAE34DCF
+AUTODESK_CLIENT_SECRET=AXYDeR3q094uuypeHWR3qP7lqH0N2hMnMO8rMG2Lpr1zj0hWAtadynWVAGA4aVJF
+AUTODESK_CALLBACK_URL=http://localhost:8080/api/auth/callback
+
+# Server Configuration
+PORT=8080

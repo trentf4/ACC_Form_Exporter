@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Relationships Explorer - Trent Field</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin: 20px auto;
+            max-width: 1400px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px 15px 0 0;
+        }
+        .relationship-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            margin: 15px 0;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .relationship-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .relationship-header {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .relationship-body {
+            padding: 20px;
+        }
+        .entity-badge {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .entity-asset { background: #007bff; color: white; }
+        .entity-form { background: #28a745; color: white; }
+        .entity-issue { background: #dc3545; color: white; }
+        .entity-document { background: #6f42c1; color: white; }
+        .entity-photo { background: #fd7e14; color: white; }
+        .entity-other { background: #6c757d; color: white; }
+        .relationship-id {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            font-size: 0.9em;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .loading {
+            display: none;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1><i class="fas fa-project-diagram"></i> Project Relationships Explorer</h1>
+                        <p class="mb-0">Explore all relationships within your ACC projects</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="/form_downloader" class="btn btn-outline-light me-2">
+                            <i class="fas fa-arrow-left"></i> Back to Forms
+                        </a>
+                        <a href="/logout" class="btn btn-outline-light">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <!-- Project Search -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="projectId" class="form-label">Project ID:</label>
+                        <input type="text" id="projectId" class="form-control" placeholder="Enter project ID" value="bb2b51a5-6911-4eb6-ad1c-d7af778738de">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button id="searchRelationships" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Search All Relationships
+                            </button>
+                            <button id="getSummary" class="btn btn-info">
+                                <i class="fas fa-chart-bar"></i> Get Summary
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Section -->
+                <div id="summarySection" style="display: none;">
+                    <div class="summary-card">
+                        <h3><i class="fas fa-chart-pie"></i> Project Relationships Summary</h3>
+                        <div id="summaryStats" class="stats-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="results" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Project Relationships</h3>
+                        <span class="badge bg-primary" id="relationshipCount">0 relationships</span>
+                    </div>
+                    <div id="relationshipsList"></div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="loading text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Searching project relationships...</p>
+                </div>
+
+                <!-- No Results -->
+                <div id="noResults" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No relationships found for this project.
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div id="error" style="display: none;">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> <span id="errorMessage"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchButton = document.getElementById('searchRelationships');
+            const summaryButton = document.getElementById('getSummary');
+            const projectIdInput = document.getElementById('projectId');
+            const resultsDiv = document.getElementById('results');
+            const summarySection = document.getElementById('summarySection');
+            const loadingDiv = document.getElementById('loading');
+            const noResultsDiv = document.getElementById('noResults');
+            const errorDiv = document.getElementById('error');
+            const relationshipsListDiv = document.getElementById('relationshipsList');
+            const summaryStatsDiv = document.getElementById('summaryStats');
+            const relationshipCountSpan = document.getElementById('relationshipCount');
+
+            searchButton.addEventListener('click', searchProjectRelationships);
+            summaryButton.addEventListener('click', getProjectSummary);
+
+            function searchProjectRelationships() {
+                const projectId = projectIdInput.value.trim();
+                if (!projectId) {
+                    alert('Please enter a project ID');
+                    return;
+                }
+
+                // Show loading
+                loadingDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                summarySection.style.display = 'none';
+                noResultsDiv.style.display = 'none';
+                errorDiv.style.display = 'none';
+
+                fetch(`/api/projects/${projectId}/relationships`)
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingDiv.style.display = 'none';
+                        
+                        if (!data.success) {
+                            showError(data.error || 'Failed to fetch relationships');
+                            return;
+                        }
+
+                        if (data.total_count === 0) {
+                            noResultsDiv.style.display = 'block';
+                            return;
+                        }
+
+                        displayRelationships(data.relationships, projectId);
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        console.error('Error:', error);
+                        showError(error.message);
+                    });
+            }
+
+            function getProjectSummary() {
+                const projectId = projectIdInput.value.trim();
+                if (!projectId) {
+                    alert('Please enter a project ID');
+                    return;
+                }
+
+                // Show loading
+                loadingDiv.style.display = 'block';
+                summarySection.style.display = 'none';
+                errorDiv.style.display = 'none';
+
+                fetch(`/api/projects/${projectId}/relationships/summary`)
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingDiv.style.display = 'none';
+                        
+                        if (!data.success) {
+                            showError(data.error || 'Failed to fetch summary');
+                            return;
+                        }
+
+                        displaySummary(data.summary);
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        console.error('Error:', error);
+                        showError(error.message);
+                    });
+            }
+
+            function displayRelationships(relationships, projectId) {
+                let html = '';
+                
+                relationships.forEach(relationship => {
+                    const createdDate = new Date(relationship.created_on).toLocaleDateString();
+                    const entityBadges = relationship.entities.map(entity => {
+                        const badgeClass = getEntityBadgeClass(entity.type);
+                        return `<span class="entity-badge ${badgeClass}" title="${entity.domain}">${entity.display_name}</span>`;
+                    }).join('');
+
+                    html += `
+                        <div class="relationship-card">
+                            <div class="relationship-header">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <strong>Relationship ID:</strong> 
+                                        <span class="relationship-id">${relationship.id}</span>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <small class="text-muted">Created: ${createdDate}</small>
+                                        ${relationship.is_read_only ? '<span class="badge bg-warning ms-2">Read-only</span>' : ''}
+                                        ${relationship.is_service ? '<span class="badge bg-info ms-2">Service</span>' : ''}
+                                        ${relationship.is_deleted ? '<span class="badge bg-danger ms-2">Deleted</span>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relationship-body">
+                                <h6>Related Entities:</h6>
+                                <div class="mb-3">
+                                    ${entityBadges}
+                                </div>
+                                <div class="row">
+                                    ${relationship.entities.map(entity => `
+                                        <div class="col-md-6 mb-2">
+                                            <strong>${entity.type}:</strong> ${entity.display_name}
+                                            <br><small class="text-muted">ID: ${entity.id}</small>
+                                            ${entity.description ? `<br><small class="text-muted">${entity.description}</small>` : ''}
+                                            ${entity.clientAssetId ? `<br><small class="text-info">Client Asset ID: ${entity.clientAssetId}</small>` : ''}
+                                            ${entity.locationId ? `<br><small class="text-info">Location ID: ${entity.locationId}</small>` : ''}
+                                            ${entity.barcode ? `<br><small class="text-info">Barcode: ${entity.barcode}</small>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                relationshipsListDiv.innerHTML = html;
+                relationshipCountSpan.textContent = `${relationships.length} relationships`;
+                resultsDiv.style.display = 'block';
+            }
+
+            function displaySummary(summary) {
+                let html = '';
+                
+                // Total relationships
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-number">${summary.total_relationships}</div>
+                        <div class="stat-label">Total Relationships</div>
+                    </div>
+                `;
+
+                // Top domains
+                const topDomains = Object.entries(summary.domains)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5);
+                
+                topDomains.forEach(([domain, count]) => {
+                    html += `
+                        <div class="stat-card">
+                            <div class="stat-number">${count}</div>
+                            <div class="stat-label">${domain.split('-').pop()}</div>
+                        </div>
+                    `;
+                });
+
+                // Top entity types
+                const topEntityTypes = Object.entries(summary.entity_types)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5);
+                
+                topEntityTypes.forEach(([entityType, count]) => {
+                    html += `
+                        <div class="stat-card">
+                            <div class="stat-number">${count}</div>
+                            <div class="stat-label">${entityType}</div>
+                        </div>
+                    `;
+                });
+
+                summaryStatsDiv.innerHTML = html;
+                summarySection.style.display = 'block';
+            }
+
+            function getEntityBadgeClass(entityType) {
+                switch(entityType.toLowerCase()) {
+                    case 'asset': return 'entity-asset';
+                    case 'form': return 'entity-form';
+                    case 'issue': return 'entity-issue';
+                    case 'documentlineage':
+                    case 'document': return 'entity-document';
+                    case 'photo': return 'entity-photo';
+                    default: return 'entity-other';
+                }
+            }
+
+            function showError(message) {
+                document.getElementById('errorMessage').textContent = message;
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

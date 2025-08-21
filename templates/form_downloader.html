@@ -1,0 +1,873 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.asset-badge {
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-badge:hover {
+    cursor: help;
+}
+
+.no-assets {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.875rem;
+}
+
+/* Asset badge types */
+.badge.bg-primary.asset-badge {
+    border-left: 3px solid #0d6efd;
+}
+
+.badge.bg-success.asset-badge {
+    border-left: 3px solid #198754;
+}
+
+.badge.bg-warning.asset-badge {
+    border-left: 3px solid #ffc107;
+    color: #000;
+}
+
+.badge.bg-info.asset-badge {
+    border-left: 3px solid #0dcaf0;
+}
+
+.badge.bg-danger.asset-badge {
+    border-left: 3px solid #dc3545;
+}
+
+.badge.bg-dark.asset-badge {
+    border-left: 3px solid #212529;
+}
+
+.badge.bg-purple.asset-badge {
+    border-left: 3px solid #6f42c1;
+}
+
+.badge.bg-info.asset-badge {
+    border-left: 3px solid #0dcaf0;
+}
+
+/* Hide specific columns */
+.hide-relationship-ids {
+    display: none !important;
+}
+</style>
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Projects in {{ hub_name }} <span class="badge bg-info text-dark">{{ hub_region }}</span></h2>
+            <div class="input-group mb-3">
+                <input type="text" id="projectSearch" class="form-control" placeholder="Search projects...">
+                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                    <i class="bi bi-x"></i> Clear
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="/relationships_debug" class="btn btn-outline-info">
+                <i class="fas fa-link"></i> Relationships Debug
+            </a>
+            <a href="/extension_forms_relationships" class="btn btn-outline-success ms-2">
+                <i class="fas fa-link"></i> Extension Forms Relationships
+            </a>
+                                            <a href="/form_exporter" class="btn btn-outline-info ms-2">
+                    <i class="fas fa-file-export"></i> Form Exporter
+                </a>
+            <a href="http://localhost:8081" class="btn btn-outline-warning ms-2">
+                <i class="fas fa-project-diagram"></i> Project Relationships
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Project Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectTableBody">
+                        {% for project in projects %}
+                        <tr class="project-row" data-project-id="{{ project.id }}" data-project-name="{{ project.name }}" data-project-desc="{{ project.description or 'No description available' }}">
+                            <td>{{ project.name }}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm toggle-forms" data-project-id="{{ project.id }}">
+                                    Show Forms
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="forms-row" id="forms-row-{{ project.id }}" style="display:none;">
+                            <td colspan="2">
+                                <div class="forms-table-container"></div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forms Modal -->
+    <div class="modal fade" id="formsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Forms for <span id="modalProjectName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Form Name</th>
+                                    <th>Created Date</th>
+                                    <th>Status</th>
+                                    <th>Related Assets</th>
+                                    <th class="hide-relationship-ids">Relationship IDs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="formsTableBody">
+                                <!-- Forms will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Project search functionality
+    const searchInput = document.getElementById('projectSearch');
+    const clearSearch = document.getElementById('clearSearch');
+    const projectRows = document.querySelectorAll('.project-row');
+
+    function filterProjects() {
+        const searchTerm = searchInput.value.toLowerCase();
+        console.log('Searching for:', searchTerm);
+        projectRows.forEach(row => {
+            const projectName = row.dataset.projectName;
+            const projectDesc = row.dataset.projectDesc;
+            console.log('Project:', projectName, 'Desc:', projectDesc);
+            const isVisible = projectName.toLowerCase().includes(searchTerm) || 
+                             projectDesc.toLowerCase().includes(searchTerm);
+            row.style.display = isVisible ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterProjects);
+    clearSearch.addEventListener('click', () => {
+        searchInput.value = '';
+        filterProjects();
+    });
+
+    // Forms modal functionality
+    const formsModal = new bootstrap.Modal(document.getElementById('formsModal'));
+    const modalProjectName = document.getElementById('modalProjectName');
+    const formsTableBody = document.getElementById('formsTableBody');
+
+    const hubRegion = JSON.parse('{{ hub_region|tojson|safe }}');
+    document.querySelectorAll('.toggle-forms').forEach(button => {
+        button.addEventListener('click', async function() {
+            let projectId = this.dataset.projectId;
+            // Remove 'b.' prefix if present
+            if (projectId.startsWith('b.')) {
+                projectId = projectId.substring(2);
+            }
+            const formsRow = document.getElementById('forms-row-' + this.dataset.projectId);
+            const formsTableContainer = formsRow.querySelector('.forms-table-container');
+            if (formsRow.style.display === 'none') {
+                formsRow.style.display = '';
+                formsTableContainer.innerHTML = '<div class="text-center">Loading forms...</div>';
+                try {
+                    console.log(`Fetching forms with relationships for project: ${projectId}, region: ${hubRegion}`);
+                    const response = await fetch(`/api/forms/${projectId}/relationships?region=${hubRegion}`);
+                    console.log(`Response status: ${response.status}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`Error response: ${errorText}`);
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                    }
+                    const forms = await response.json();
+                    console.log(`Forms response:`, forms);
+                    if (!Array.isArray(forms)) {
+                        console.error(`Expected array, got:`, typeof forms, forms);
+                        formsTableContainer.innerHTML = '<div class="text-danger">Error: Invalid response format</div>';
+                        return;
+                    }
+                    if (forms.length === 0) {
+                        console.log('No forms found in response');
+                        formsTableContainer.innerHTML = '<div class="text-center">No forms found</div>';
+                        return;
+                    }
+                    formsTableContainer.innerHTML = `
+                        <div class="table-responsive">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll-${projectId}">
+                                    <label class="form-check-label" for="selectAll-${projectId}">
+                                        <strong>Select All Forms</strong>
+                                    </label>
+                                </div>
+                                <button class="btn btn-success btn-sm ms-3" id="exportSelected-${projectId}" disabled>
+                                    <i class="bi bi-download"></i> Export Selected
+                                </button>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <strong>Asset Legend:</strong> 
+                                    <span class="badge bg-success asset-badge">Extension Form Relationships (Detailed)</span> 
+                                    <span class="badge bg-primary asset-badge">Description Match</span> 
+                                    <span class="badge bg-warning asset-badge">Location Match</span> 
+                                    <span class="badge bg-info asset-badge">Embedded Reference</span>
+                                    <span class="badge bg-secondary asset-badge">Field Reference</span>
+                                    <span class="badge bg-danger asset-badge">Form Reference</span>
+                                    <span class="badge bg-dark asset-badge">Relationship Service</span>
+                                    <span class="badge bg-purple asset-badge">Form Relationship Field</span>
+                                    <span class="badge bg-info asset-badge">Relationship Search</span>
+                                </small>
+                            </div>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th width="50">Select</th>
+                                        <th>Form Name</th>
+                                        <th>Created Date</th>
+                                        <th>Status</th>
+                                        <th>Related Assets</th>
+                                        <th>Relationship IDs</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${forms.map(form => {
+                                        // Debug logging for all forms with relationships
+                                        if (form.related_assets && form.related_assets.length > 0) {
+                                            console.log(`Form with relationships: ${form.name}`, form);
+                                            console.log(`Related assets:`, form.related_assets);
+                                        }
+                                        
+                                        // Format assets display using new related_assets data
+                                        let assetsDisplay = '<span class="no-assets">None</span>';
+                                        let relationshipIdsDisplay = '<span class="no-assets">None</span>';
+                                        
+                                        // Use the new related_assets data if available, otherwise fall back to old assets
+                                        const assetsToDisplay = form.related_assets || form.assets || [];
+                                        
+                                        if (assetsToDisplay.length > 0) {
+                                            assetsDisplay = assetsToDisplay.map(asset => {
+                                                const assetName = asset.name || asset.clientAssetId || 'Unknown Asset';
+                                                let tooltipText = assetName;
+                                                let badgeClass = 'bg-info';
+                                                
+                                                // For detailed related_assets (from form test), show enhanced tooltip
+                                                if (form.related_assets && asset.clientAssetId) {
+                                                    tooltipText = `
+                                                        <strong>Asset Details:</strong><br>
+                                                        <strong>Name:</strong> ${asset.name || 'N/A'}<br>
+                                                        <strong>ID:</strong> ${asset.id || 'N/A'}<br>
+                                                        <strong>Client Asset ID:</strong> ${asset.clientAssetId || 'N/A'}<br>
+                                                        <strong>Location ID:</strong> ${asset.locationId || 'N/A'}<br>
+                                                        <strong>Barcode:</strong> ${asset.barcode || 'N/A'}
+                                                    `;
+                                                    badgeClass = 'bg-success'; // Use green for detailed relationship assets
+                                                } else if (asset.description) {
+                                                    tooltipText = `${assetName}: ${asset.description}`;
+                                                }
+                                                
+                                                // For new related_assets, use a consistent badge class
+                                                if (form.related_assets) {
+                                                    badgeClass = 'bg-success'; // Use green for relationship-based assets
+                                                } else {
+                                                    // Fallback to old logic for backward compatibility
+                                                    if (asset.type === 'name_match') {
+                                                        badgeClass = 'bg-success';
+                                                    } else if (asset.type === 'description_match') {
+                                                        badgeClass = 'bg-primary';
+                                                    } else if (asset.type === 'location_match') {
+                                                        badgeClass = 'bg-warning';
+                                                    } else if (asset.type === 'embedded_reference') {
+                                                        badgeClass = 'bg-info';
+                                                    } else if (asset.type === 'field_reference') {
+                                                        badgeClass = 'bg-secondary';
+                                                    } else if (asset.type === 'form_reference') {
+                                                        badgeClass = 'bg-danger';
+                                                    } else if (asset.type === 'relationship_service') {
+                                                        badgeClass = 'bg-dark';
+                                                    } else if (asset.type === 'form_relationship_field') {
+                                                        badgeClass = 'bg-purple';
+                                                    } else if (asset.type === 'relationship_search') {
+                                                        badgeClass = 'bg-info';
+                                                    }
+                                                }
+                                                
+                                                return `<span class="badge ${badgeClass} asset-badge" title="${tooltipText}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true">${assetName}</span>`;
+                                            }).join('');
+                                            
+                                            // Extract relationship IDs
+                                            const relationshipIds = assetsToDisplay
+                                                .filter(asset => asset.relationship_id)
+                                                .map(asset => asset.relationship_id);
+                                            
+                                            if (relationshipIds.length > 0) {
+                                                relationshipIdsDisplay = relationshipIds.map(id => 
+                                                    `<code class="text-primary">${id}</code>`
+                                                ).join('<br>');
+                                            }
+                                        }
+                                        
+                                        return `
+                                        <tr>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input form-checkbox" type="checkbox" 
+                                                           data-form-id="${form.id}" data-project-id="${projectId}"
+                                                           data-form-name="${form.name || 'Unnamed Form'}">
+                                                </div>
+                                            </td>
+                                            <td>${form.name || 'Unnamed Form'}</td>
+                                            <td>${form.created_at ? new Date(form.created_at).toLocaleDateString() : 'N/A'}</td>
+                                            <td><span class="badge bg-${form.status === 'active' ? 'success' : 'secondary'}">${form.status || 'unknown'}</span></td>
+                                            <td>${assetsDisplay}</td>
+                                            <td class="hide-relationship-ids">${relationshipIdsDisplay}</td>
+                                            <td>
+                                                <button class="btn btn-primary btn-sm view-form" data-form-id="${form.id}" data-project-id="${projectId}">View</button>
+                                                <button class="btn btn-secondary btn-sm export-form" data-form-id="${form.id}" data-project-id="${projectId}">Export</button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    // Add event listeners for view form buttons
+                    formsTableContainer.querySelectorAll('.view-form').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const formId = this.dataset.formId;
+                            const projectId = this.dataset.projectId;
+                            // Open form in new window/tab
+                            window.open(`/view_form?form_id=${formId}&project_id=${projectId}`, '_blank');
+                        });
+                    });
+                    
+                    // Initialize tooltips for asset badges
+                    formsTableContainer.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                        new bootstrap.Tooltip(el);
+                    });
+                    
+                    // Add event listeners for export form buttons
+                    formsTableContainer.querySelectorAll('.export-form').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const formId = this.dataset.formId;
+                            const projectId = this.dataset.projectId;
+                            
+                            try {
+                                // Fetch form data to get suggested filename
+                                const response = await fetch(`/view_form?form_id=${formId}&project_id=${projectId}&json=true`);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                const formData = await response.json();
+                                
+                                // Create dropdown modal for filename selection
+                                const modal = document.createElement('div');
+                                modal.className = 'modal fade';
+                                modal.id = 'filenameModal';
+                                modal.setAttribute('tabindex', '-1');
+                                modal.setAttribute('aria-labelledby', 'filenameModalLabel');
+                                modal.setAttribute('aria-hidden', 'true');
+                                
+                                // Collect all field values for dropdown
+                                const fieldOptions = [];
+                                const referenceFields = ['EOT Reference Number', 'Form Number', 'Reference Number', 'Claim Number', 'Project Number', 'Job Number'];
+                                
+                                // Add form name as first option
+                                fieldOptions.push({
+                                    label: `Form Name: ${formData.name}`,
+                                    value: formData.name || 'Form'
+                                });
+                                
+                                // Add all field values
+                                formData.sections.forEach(section => {
+                                    section.fields.forEach(field => {
+                                        if (field.value && field.value !== 'N/A' && field.value !== '') {
+                                            const isReference = referenceFields.some(ref => 
+                                                field.label.toLowerCase().includes(ref.toLowerCase())
+                                            );
+                                            
+                                            fieldOptions.push({
+                                                label: `${field.label}: ${field.value}`,
+                                                value: field.value,
+                                                isReference: isReference
+                                            });
+                                        }
+                                    });
+                                });
+                                
+                                // Sort reference fields first, then alphabetically
+                                fieldOptions.sort((a, b) => {
+                                    if (a.isReference && !b.isReference) return -1;
+                                    if (!a.isReference && b.isReference) return 1;
+                                    return a.label.localeCompare(b.label);
+                                });
+                                
+                                // Create dropdown options HTML
+                                const dropdownOptions = fieldOptions.map(option => 
+                                    `<option value="${option.value}" ${option.isReference ? 'style="font-weight: bold;"' : ''}>
+                                        ${option.label}
+                                    </option>`
+                                ).join('');
+                                
+                                modal.innerHTML = `
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="filenameModalLabel">Select Filename for PDF Export</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Choose a filename from the form data or enter a custom name:</p>
+                                                <div class="mb-3">
+                                                    <label for="filenameSelect" class="form-label">Select from form data:</label>
+                                                    <select class="form-select" id="filenameSelect">
+                                                        ${dropdownOptions}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="customFilename" class="form-label">Or enter custom filename:</label>
+                                                    <input type="text" class="form-control" id="customFilename" placeholder="Enter custom filename">
+                                                </div>
+                                                <hr>
+                                                <div class="mb-3">
+                                                    <label class="form-label">PDF Options:</label>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="includeLogo" checked>
+                                                        <label class="form-check-label" for="includeLogo">
+                                                            Include logo in top left corner
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3" id="logoUploadSection">
+                                                    <label for="logoFile" class="form-label">Upload custom logo (optional):</label>
+                                                    <input type="file" class="form-control" id="logoFile" accept="image/*">
+                                                    <div class="form-text">Leave empty to use default logo or no logo</div>
+                                                </div>
+                                                <div class="alert alert-info">
+                                                    <small><strong>Tip:</strong> Reference numbers and form numbers are highlighted in bold.</small>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary" id="exportBtn">Export PDF</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                // Add modal to page
+                                document.body.appendChild(modal);
+                                
+                                // Initialize Bootstrap modal
+                                const bootstrapModal = new bootstrap.Modal(modal);
+                                bootstrapModal.show();
+                                
+                                // Handle dropdown selection
+                                const filenameSelect = modal.querySelector('#filenameSelect');
+                                const customFilename = modal.querySelector('#customFilename');
+                                
+                                filenameSelect.addEventListener('change', function() {
+                                    customFilename.value = this.value;
+                                });
+                                
+                                // Handle custom filename input
+                                customFilename.addEventListener('input', function() {
+                                    filenameSelect.value = '';
+                                });
+                                
+                                // Handle export button
+                                modal.querySelector('#exportBtn').addEventListener('click', async function() {
+                                    const selectedFilename = customFilename.value.trim() || filenameSelect.value;
+                                    if (!selectedFilename) {
+                                        alert('Please select or enter a filename');
+                                        return;
+                                    }
+                                    
+                                    const cleanFilename = selectedFilename.replace(/[<>:"/\\|?*]/g, '_').trim() + '.pdf';
+                                    const includeLogo = modal.querySelector('#includeLogo').checked;
+                                    const logoFile = modal.querySelector('#logoFile').files[0];
+                                    
+                                    // Create FormData for file upload
+                                    const formData = new FormData();
+                                    formData.append('project_id', projectId);
+                                    formData.append('filename', cleanFilename);
+                                    formData.append('include_logo', includeLogo);
+                                    if (logoFile) {
+                                        formData.append('logo', logoFile);
+                                    }
+                                    
+                                    try {
+                                        // Use POST request for file upload
+                                        const response = await fetch(`/api/forms/${formId}/export-pdf`, {
+                                            method: 'POST',
+                                            body: formData
+                                        });
+                                        
+                                        if (!response.ok) {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        }
+                                        
+                                        // Get the PDF blob and download it
+                                        const blob = await response.blob();
+                                        const url = window.URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = cleanFilename;
+                                        link.style.display = 'none';
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        window.URL.revokeObjectURL(url);
+                                        
+                                        // Close modal
+                                        bootstrapModal.hide();
+                                        
+                                        // Remove modal from DOM after it's hidden
+                                        modal.addEventListener('hidden.bs.modal', function() {
+                                            document.body.removeChild(modal);
+                                        });
+                                    } catch (error) {
+                                        console.error('Error exporting form:', error);
+                                        alert('Error exporting form: ' + error.message);
+                                    }
+                                });
+                                
+                                // Set initial value to first reference field or form name
+                                const firstReference = fieldOptions.find(option => option.isReference);
+                                if (firstReference) {
+                                    filenameSelect.value = firstReference.value;
+                                    customFilename.value = firstReference.value;
+                                } else {
+                                    filenameSelect.value = fieldOptions[0].value;
+                                    customFilename.value = fieldOptions[0].value;
+                                }
+                                
+                            } catch (error) {
+                                console.error('Error exporting form:', error);
+                                alert('Error exporting form: ' + error.message);
+                            }
+                        });
+                    });
+                    
+                    // Add event listeners for multi-selection functionality
+                    const selectAllCheckbox = formsTableContainer.querySelector(`#selectAll-${projectId}`);
+                    const exportSelectedBtn = formsTableContainer.querySelector(`#exportSelected-${projectId}`);
+                    const formCheckboxes = formsTableContainer.querySelectorAll('.form-checkbox');
+                    
+                    // Handle "Select All" checkbox
+                    selectAllCheckbox.addEventListener('change', function() {
+                        formCheckboxes.forEach(checkbox => {
+                            checkbox.checked = this.checked;
+                        });
+                        updateExportButton();
+                    });
+                    
+                    // Handle individual form checkboxes
+                    formCheckboxes.forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            updateExportButton();
+                            updateSelectAllCheckbox();
+                        });
+                    });
+                    
+                    // Update export button state
+                    function updateExportButton() {
+                        const checkedBoxes = formsTableContainer.querySelectorAll('.form-checkbox:checked');
+                        exportSelectedBtn.disabled = checkedBoxes.length === 0;
+                        exportSelectedBtn.textContent = `Export Selected (${checkedBoxes.length})`;
+                    }
+                    
+                    // Update "Select All" checkbox state
+                    function updateSelectAllCheckbox() {
+                        const totalBoxes = formCheckboxes.length;
+                        const checkedBoxes = formsTableContainer.querySelectorAll('.form-checkbox:checked');
+                        selectAllCheckbox.checked = checkedBoxes.length === totalBoxes;
+                        selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < totalBoxes;
+                    }
+                    
+                    // Handle "Export Selected" button
+                    exportSelectedBtn.addEventListener('click', async function() {
+                        const checkedBoxes = formsTableContainer.querySelectorAll('.form-checkbox:checked');
+                        if (checkedBoxes.length === 0) {
+                            alert('Please select at least one form to export');
+                            return;
+                        }
+                        
+                        const selectedForms = Array.from(checkedBoxes).map(checkbox => ({
+                            id: checkbox.dataset.formId,
+                            name: checkbox.dataset.formName
+                        }));
+                        
+                        try {
+                            // Fetch form data for all selected forms to get suggested filenames
+                            const formDataPromises = selectedForms.map(async (form) => {
+                                const response = await fetch(`/view_form?form_id=${form.id}&project_id=${projectId}&json=true`);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                return await response.json();
+                            });
+                            
+                            const formsData = await Promise.all(formDataPromises);
+                            
+                            // Create modal for ZIP filename selection
+                            const modal = document.createElement('div');
+                            modal.className = 'modal fade';
+                            modal.id = 'zipFilenameModal';
+                            modal.setAttribute('tabindex', '-1');
+                            modal.setAttribute('aria-labelledby', 'zipFilenameModalLabel');
+                            modal.setAttribute('aria-hidden', 'true');
+                            
+                            // Generate filename options for each form
+                            const formsWithOptions = formsData.map((formData, index) => {
+                                const fieldOptions = [];
+                                const referenceFields = ['EOT Reference Number', 'Form Number', 'Reference Number', 'Claim Number', 'Project Number', 'Job Number'];
+                                
+                                // Add form name as first option
+                                fieldOptions.push({
+                                    label: `Form Name: ${formData.name}`,
+                                    value: formData.name || 'Form'
+                                });
+                                
+                                // Add all field values
+                                formData.sections.forEach(section => {
+                                    section.fields.forEach(field => {
+                                        if (field.value && field.value !== 'N/A' && field.value !== '') {
+                                            const isReference = referenceFields.some(ref => 
+                                                field.label.toLowerCase().includes(ref.toLowerCase())
+                                            );
+                                            
+                                            fieldOptions.push({
+                                                label: `${field.label}: ${field.value}`,
+                                                value: field.value,
+                                                isReference: isReference
+                                            });
+                                        }
+                                    });
+                                });
+                                
+                                // Sort reference fields first, then alphabetically
+                                fieldOptions.sort((a, b) => {
+                                    if (a.isReference && !b.isReference) return -1;
+                                    if (!a.isReference && b.isReference) return 1;
+                                    return a.label.localeCompare(b.label);
+                                });
+                                
+                                return {
+                                    formData: formData,
+                                    fieldOptions: fieldOptions,
+                                    selectedValue: fieldOptions.find(opt => opt.isReference)?.value || fieldOptions[0]?.value || formData.name
+                                };
+                            });
+                            
+                            // Create modal content
+                            const modalContent = formsWithOptions.map((formInfo, index) => {
+                                const dropdownOptions = formInfo.fieldOptions.map(option => 
+                                    `<option value="${option.value}" ${option.isReference ? 'style="font-weight: bold;"' : ''}>
+                                        ${option.label}
+                                    </option>`
+                                ).join('');
+                                
+                                return `
+                                    <div class="mb-4 p-3 border rounded">
+                                        <h6 class="mb-2">${index + 1}. ${formInfo.formData.name}</h6>
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <label class="form-label">Select filename:</label>
+                                                <select class="form-select form-select-sm filename-select" data-form-index="${index}">
+                                                    ${dropdownOptions}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Custom filename:</label>
+                                                <input type="text" class="form-control form-control-sm custom-filename" 
+                                                       data-form-index="${index}" 
+                                                       placeholder="Or enter custom name"
+                                                       value="${formInfo.selectedValue}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                            
+                            modal.innerHTML = `
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="zipFilenameModalLabel">Select Filenames for ZIP Export</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Choose filenames for each form in the ZIP file:</p>
+                                            ${modalContent}
+                                            <hr>
+                                            <div class="mb-3">
+                                                <label class="form-label">PDF Options (applies to all forms):</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="includeLogoZip" checked>
+                                                    <label class="form-check-label" for="includeLogoZip">
+                                                        Include logo in top left corner of all PDFs
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3" id="logoUploadSectionZip">
+                                                <label for="logoFileZip" class="form-label">Upload custom logo (optional):</label>
+                                                <input type="file" class="form-control" id="logoFileZip" accept="image/*">
+                                                <div class="form-text">Leave empty to use default logo or no logo</div>
+                                            </div>
+                                            <div class="alert alert-info">
+                                                <small><strong>Tip:</strong> Reference numbers and form numbers are highlighted in bold.</small>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="button" class="btn btn-primary" id="exportZipBtn">Export ZIP</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Add modal to page
+                            document.body.appendChild(modal);
+                            
+                            // Initialize Bootstrap modal
+                            const bootstrapModal = new bootstrap.Modal(modal);
+                            bootstrapModal.show();
+                            
+                            // Handle dropdown selections
+                            modal.querySelectorAll('.filename-select').forEach(select => {
+                                const formIndex = select.dataset.formIndex;
+                                const customInput = modal.querySelector(`.custom-filename[data-form-index="${formIndex}"]`);
+                                
+                                select.addEventListener('change', function() {
+                                    customInput.value = this.value;
+                                });
+                                
+                                customInput.addEventListener('input', function() {
+                                    select.value = '';
+                                });
+                            });
+                            
+                            // Handle ZIP export button
+                            modal.querySelector('#exportZipBtn').addEventListener('click', async function() {
+                                // Collect all filenames
+                                const filenames = [];
+                                let hasError = false;
+                                
+                                modal.querySelectorAll('.custom-filename').forEach((input, index) => {
+                                    const filename = input.value.trim();
+                                    if (!filename) {
+                                        alert(`Please enter a filename for form ${index + 1}`);
+                                        hasError = true;
+                                        return;
+                                    }
+                                    filenames.push(filename);
+                                });
+                                
+                                if (hasError) return;
+                                
+                                // Show loading state
+                                const exportBtn = this;
+                                exportBtn.disabled = true;
+                                exportBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating ZIP...';
+                                
+                                try {
+                                    // Get logo options
+                                    const includeLogo = modal.querySelector('#includeLogoZip').checked;
+                                    const logoFile = modal.querySelector('#logoFileZip').files[0];
+                                    
+                                    // Create FormData for file upload
+                                    const formData = new FormData();
+                                    formData.append('project_id', projectId);
+                                    formData.append('form_ids', selectedForms.map(form => form.id).join(','));
+                                    formData.append('filenames', filenames.map(f => f.replace(/[<>:"/\\|?*]/g, '_')).join(','));
+                                    formData.append('include_logo', includeLogo);
+                                    if (logoFile) {
+                                        formData.append('logo', logoFile);
+                                    }
+                                    
+                                    // Use POST request for file upload
+                                    const response = await fetch('/api/forms/export-zip', {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+                                    
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    
+                                    // Get the ZIP blob and download it
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `forms_export_${new Date().toISOString().split('T')[0]}.zip`;
+                                    link.style.display = 'none';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(url);
+                                    
+                                    // Close modal
+                                    bootstrapModal.hide();
+                                    
+                                    // Remove modal from DOM after it's hidden
+                                    modal.addEventListener('hidden.bs.modal', function() {
+                                        document.body.removeChild(modal);
+                                    });
+                                    
+                                } catch (error) {
+                                    console.error('Error exporting ZIP:', error);
+                                    alert('Error exporting ZIP: ' + error.message);
+                                    
+                                    // Reset button state
+                                    exportBtn.disabled = false;
+                                    exportBtn.innerHTML = 'Export ZIP';
+                                }
+                            });
+                            
+                        } catch (error) {
+                            console.error('Error preparing ZIP export:', error);
+                            alert('Error preparing ZIP export: ' + error.message);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading forms:', error);
+                    formsTableContainer.innerHTML = `<div class="text-danger">Error loading forms: ${error.message}</div>`;
+                }
+            } else {
+                formsRow.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

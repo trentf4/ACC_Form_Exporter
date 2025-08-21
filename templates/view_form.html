@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Form - {{ form.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background: #f4f6f8; }
+        .form-header {
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .project-logo {
+            max-height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+            margin-right: 1rem;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .no-print {
+            /* Always visible on screen, hidden in print/PDF */
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+        .acc-section {
+            margin-bottom: 2.5rem;
+        }
+        .acc-section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+        .acc-section-number {
+            margin-right: 0.5rem;
+        }
+        .acc-section-divider {
+            margin-top: 0.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .acc-field {
+            margin-bottom: 2rem;
+        }
+        .acc-field-label-row {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .acc-field-number {
+            margin-right: 0.5rem;
+            color: #888;
+        }
+        .acc-field-label {
+            font-weight: bold;
+        }
+        .acc-field-value-row {
+            margin-bottom: 0.5rem;
+        }
+        .acc-field-value {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+        }
+        .acc-field-date i {
+            margin-right: 0.5rem;
+            color: #888;
+        }
+        .acc-field-actions {
+            margin-top: 0.25rem;
+        }
+        .acc-field-actions .btn {
+            margin-right: 0.25rem;
+            font-size: 0.9rem;
+            padding: 0.15rem 0.5rem;
+        }
+        .value-list {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+        .value-list li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <!-- Header -->
+                <div class="form-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            {% if project_logo_url %}
+                                <img src="{{ project_logo_url }}" alt="{{ project_name }} Logo" class="project-logo me-3">
+                            {% endif %}
+                            <div>
+                                <h1 class="h2 mb-0">{{ form.name }}</h1>
+                                <small class="text-muted">{{ project_name }}</small>
+                            </div>
+                        </div>
+                        <div class="header-actions no-print">
+                            <button onclick="printWithReferenceNumber()" class="btn btn-primary">Export to PDF</button>
+                            <a href="{{ url_for('form_downloader') }}?project_id={{ project_id }}" class="btn btn-outline-secondary">Back to Forms</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACC Sections and Fields -->
+                {% set section_num = 1 %}
+                {% for section in form.sections %}
+                <div class="acc-section">
+                    <div class="acc-section-title">
+                        <span class="acc-section-number">{{ section_num }}.</span>
+                        <span class="acc-section-label">{{ section.title }}</span>
+                    </div>
+                    <hr class="acc-section-divider">
+                    {% for field in section.fields %}
+                    <div class="acc-field">
+                        <div class="acc-field-label-row">
+                            <span class="acc-field-number">{{ section_num }}.{{ loop.index }}</span>
+                            <span class="acc-field-label">{{ field.label }}</span>
+                        </div>
+                        <div class="acc-field-value-row">
+                            <div class="acc-field-value {% if field.type == 'date' %}acc-field-date{% endif %}">
+                                {% if field.type == 'date' %}
+                                    <i class="bi bi-calendar3"></i> {{ field.value }}
+                                {% elif field.type == 'bool' %}
+                                    {{ 'Yes' if field.value else 'No' }}
+                                {% elif field.type == 'list' %}
+                                    <ul class="value-list">
+                                    {% for item in field.value %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% elif field.type == 'object' %}
+                                    <ul class="value-list">
+                                    {% for k, v in field.value.items() %}
+                                        <li><strong>{{ k }}:</strong> {{ v }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    {{ field.value }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="acc-field-actions">
+                            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-paperclip"></i> Attachments</button>
+                            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-image"></i> Photos</button>
+                            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-exclamation-circle"></i> Issues</button>
+                            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Note</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% set section_num = section_num + 1 %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <script>
+    function printWithReferenceNumber() {
+        // Find potential filename fields in the form
+        let suggestedFilename = '';
+        let fieldOptions = [];
+        
+        // Look for common filename fields
+        document.querySelectorAll('.acc-field-label').forEach(function(labelEl) {
+            const labelText = labelEl.textContent.toLowerCase();
+            const valueEl = labelEl.parentElement.parentElement.querySelector('.acc-field-value');
+            if (valueEl) {
+                const value = valueEl.textContent.trim();
+                if (value && value !== 'N/A' && value !== '') {
+                    if (labelText.includes('reference number') || 
+                        labelText.includes('form number') || 
+                        labelText.includes('claim number') ||
+                        labelText.includes('eot reference') ||
+                        labelText.includes('project number') ||
+                        labelText.includes('job number')) {
+                        suggestedFilename = value;
+                    }
+                    fieldOptions.push({
+                        label: labelEl.textContent.trim(),
+                        value: value
+                    });
+                }
+            }
+        });
+        
+        // If no reference number found, use form name
+        if (!suggestedFilename) {
+            suggestedFilename = document.title.replace('View Form - ', '');
+        }
+        
+        // Show prompt for filename
+        const filename = prompt('Enter filename for PDF export:', suggestedFilename);
+        
+        if (filename) {
+            // Clean filename (remove invalid characters)
+            const cleanFilename = filename.replace(/[<>:"/\\|?*]/g, '_').trim();
+            const oldTitle = document.title;
+            document.title = cleanFilename + ' - ACC Form';
+            window.print();
+            setTimeout(() => { document.title = oldTitle; }, 1000);
+        }
+    }
+    
+    // Check if we should auto-trigger print (when coming from Export button)
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('print') === 'true') {
+            // Trigger print immediately after page loads
+            setTimeout(() => {
+                printWithReferenceNumber();
+            }, 1000); // Increased delay to ensure everything is loaded
+        }
+    });
+    
+    // Also check on window load as backup
+    window.addEventListener('load', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('print') === 'true') {
+            setTimeout(() => {
+                printWithReferenceNumber();
+            }, 500);
+        }
+    });
+    }
+    </script>
+</body>
+</html> 

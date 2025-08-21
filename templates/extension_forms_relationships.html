@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension Forms Relationships - ACC Forms Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .relationship-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .relationship-header {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .relationship-body {
+            padding: 1.5rem;
+        }
+        .entity-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+            margin: 0.25rem;
+        }
+        .form-badge {
+            background: #28a745;
+            color: white;
+        }
+        .asset-badge {
+            background: #007bff;
+            color: white;
+        }
+        .entity-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .entity-details h6 {
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .entity-details p {
+            margin-bottom: 0.25rem;
+            color: #6c757d;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .no-forms {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .project-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-link"></i> Extension Forms Relationships</h1>
+                    <p class="mb-0">View Extension of Time Claim forms and their asset relationships</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/form_downloader" class="btn btn-outline-light me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Forms
+                    </a>
+                    <a href="/logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Project Selector -->
+        <div class="project-selector">
+            <div class="row align-items-end">
+                <div class="col-md-6">
+                    <label for="projectSearch" class="form-label">Search Projects:</label>
+                    <input type="text" class="form-control" id="projectSearch" placeholder="Enter project name...">
+                </div>
+                <div class="col-md-4">
+                    <label for="projectSelect" class="form-label">Select Project:</label>
+                    <select class="form-select" id="projectSelect">
+                        <option value="">Choose a project...</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="loadExtensionForms()">
+                        <i class="fas fa-search"></i> Load Forms
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Extension Forms with Relationships</h3>
+                <div class="text-muted">
+                    <span id="formCount">0</span> forms found
+                </div>
+            </div>
+            
+            <div id="formsContainer">
+                <!-- Forms will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Loading Extension of Time Claim forms and their relationships...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- No Forms State -->
+        <div id="noFormsState" class="no-forms" style="display: none;">
+            <i class="fas fa-search fa-2x mb-3"></i>
+            <h4>No Extension Forms Found</h4>
+            <p>No "Extension of Time Claim" forms were found in the selected project.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let projects = [];
+
+        // Load projects when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+        });
+
+        // Project search functionality
+        document.getElementById('projectSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const select = document.getElementById('projectSelect');
+            
+            // Clear current options
+            select.innerHTML = '<option value="">Choose a project...</option>';
+            
+            // Filter and add matching projects
+            projects.forEach(project => {
+                if (project.name.toLowerCase().includes(searchTerm)) {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    select.appendChild(option);
+                }
+            });
+        });
+
+        async function loadProjects() {
+            try {
+                const response = await fetch('/search_projects?query=');
+                const data = await response.json();
+                
+                if (data.projects) {
+                    projects = data.projects;
+                    const select = document.getElementById('projectSelect');
+                    
+                    projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+            }
+        }
+
+        async function loadExtensionForms() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                alert('Please select a project first.');
+                return;
+            }
+
+            // Show loading state
+            showLoading();
+
+            try {
+                const response = await fetch(`/api/extension_forms_relationships/${projectId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayForms(data);
+                } else {
+                    showError(data.error || 'Failed to load forms');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error occurred');
+            }
+        }
+
+        function displayForms(data) {
+            const container = document.getElementById('formsContainer');
+            const countSpan = document.getElementById('formCount');
+            
+            countSpan.textContent = data.total_forms;
+            
+            if (data.total_forms === 0) {
+                showNoForms();
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            data.forms.forEach(form => {
+                const formCard = createFormCard(form);
+                container.appendChild(formCard);
+            });
+
+            showResults();
+        }
+
+        function createFormCard(form) {
+            const card = document.createElement('div');
+            card.className = 'relationship-card';
+            
+            card.innerHTML = `
+                <div class="relationship-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-1">
+                                <i class="fas fa-file-alt text-success"></i>
+                                ${form.form_name}
+                            </h5>
+                            <small class="text-muted">Form ID: ${form.form_id}</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-primary">${form.relationship_count} relationship(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="relationship-body">
+                    ${form.related_assets.length > 0 ? 
+                        form.related_assets.map(asset => `
+                            <div class="entity-details">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-link text-primary"></i> Relationship ID:</h6>
+                                        <p class="mb-2"><code>${asset.relationship_id}</code></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-calendar text-info"></i> Created:</h6>
+                                        <p class="mb-2">${formatDate(form.form_created)}</p>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-3"><i class="fas fa-tags"></i> Related Entities:</h6>
+                                <div class="mb-3">
+                                    <span class="entity-badge form-badge">
+                                        <i class="fas fa-file-alt"></i> ${form.form_name}
+                                    </span>
+                                    <span class="entity-badge asset-badge">
+                                        <i class="fas fa-cube"></i> ${asset.name}
+                                    </span>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-file-alt text-success"></i> Form Details:</h6>
+                                        <p><strong>Name:</strong> ${form.form_name}</p>
+                                        <p><strong>ID:</strong> ${form.form_id}</p>
+                                        <p><strong>Created:</strong> ${formatDate(form.form_created)}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-cube text-primary"></i> Asset Details:</h6>
+                                        <p><strong>Name:</strong> ${asset.name}</p>
+                                        <p><strong>ID:</strong> ${asset.id}</p>
+                                        ${asset.clientAssetId ? `<p><strong>Client Asset ID:</strong> ${asset.clientAssetId}</p>` : ''}
+                                        ${asset.locationId ? `<p><strong>Location ID:</strong> ${asset.locationId}</p>` : ''}
+                                        ${asset.barcode ? `<p><strong>Barcode:</strong> ${asset.barcode}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : 
+                        '<div class="text-center text-muted"><i class="fas fa-info-circle"></i> No asset relationships found for this form.</div>'
+                    }
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('noFormsState').style.display = 'none';
+        }
+
+        function showResults() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('noFormsState').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('noFormsState').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function showNoForms() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('noFormsState').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
